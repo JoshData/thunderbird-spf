@@ -88,7 +88,7 @@ function spfLoadSettings() {
 }
 
 function spfGoEvent() {
-	spfGo(false);
+	window.setTimeout("spfGo(false);", 250);
 }
 
 function spfGo(manual) {
@@ -155,13 +155,13 @@ function spfGo(manual) {
 	var input = Components.classes["@mozilla.org/scriptableinputstream;1"].createInstance();
 	var scriptableinput = input.QueryInterface(Components.interfaces.nsIScriptableInputStream);
 
-	var async_consumer = Components.classes["@mozilla.org/network/async-stream-listener;1"].createInstance();
+	/*var async_consumer = Components.classes["@mozilla.org/network/async-stream-listener;1"].createInstance();
 	var async_consumer2 = async_consumer.QueryInterface(Components.interfaces.nsIAsyncStreamListener);
-	async_consumer2.init(consumer_inputstream, null);
+	async_consumer2.init(consumer_inputstream, null);*/
 	
 	scriptableinput.init(consumer);
 	try {
-		msgService.streamMessage(uri, async_consumer, msgWindow, null, false, null)
+		msgService.streamMessage(uri, consumer, msgWindow, null, false, null)
 	} catch (ex) {
 		statusText.value = "Sender verification is not applicable for this message.";
 		return;
