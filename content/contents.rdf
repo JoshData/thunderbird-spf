@@ -11,7 +11,7 @@
 	  chrome:author="Joshua Tauberer (tauberer@for.net)" 
 	  chrome:name="spf"
 	  chrome:extension="true"
-	  chrome:description="Checks emails against SPF and DomainKeys.  Protects you from phishing."> 
+	  chrome:description="Verifies emails with SPF and DomainKeys.  Protects you from phishing."> 
 </RDF:Description>
 
 <RDF:Seq about="urn:mozilla:overlays">

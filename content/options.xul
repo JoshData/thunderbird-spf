@@ -161,10 +161,10 @@
 	  <separator class="groove-thin"/>
 	  
 	  <vbox>
-		<label value="Query Server:" class="header"/>
+		<label value="Verification Server:" class="header"/>
 		<textbox id="spf_queryserver" style="width: 250px"/>
 	  </vbox>
-	  <description>This is the address of the server which will be contacted to perform SPF queries each time an email is loaded. When left blank, this setting will be set to the default query server the next time a mail message is loaded.</description>	  
+	  <description>This is the address of the server which will be contacted to perform SPF/DK queries each time an email is loaded. When left blank, this setting will be set to the default query server the next time a mail message is loaded.</description>	  
 	  
 	 </vbox>
 

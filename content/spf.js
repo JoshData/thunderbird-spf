@@ -4,6 +4,11 @@
  * Copyright 2004 Joshua Tauberer <tauberer@for.net>
  *
  * Feel free to use and copy and modify this file however you like.
+*
+ * While I disagree with the claim of the below statement, I must CYA
+ * and include:  This code incorporates intellectual property owned by
+ * Yahoo! and licensed pursuant to the Yahoo! DomainKeys Patent License
+ * Agreement.
  */
 
 // CONSTANTS
@@ -88,6 +93,7 @@ function spfLoadSettings() {
 }
 
 function spfGoEvent() {
+	// The timeout prevents a hang when loading IMAP messages with attachments
 	window.setTimeout("spfGo(false);", 250);
 }
 
@@ -124,13 +130,14 @@ function spfGo(manual) {
 
 	var uri = GetFirstSelectedMessage();
 	if (!uri) return;
+	if (uri.indexOf("news-message://") == 0) return;
 
 	statusText.style.display = null;
 	
 	if (checkonload == "no" && !manual) {
 		goMenu.hidden = false;
 		goMenuSep.hidden = false;
-		statusText.value = "Click on Verify Sender (SPF) from the Tools menu.";
+		statusText.value = "Click on Verify Sender (SPF/DK) from the Tools menu.";
 		return;
 	}
 
@@ -139,14 +146,14 @@ function spfGo(manual) {
 	// Check that a query server has been set up.  If not, display an error.
 	
 	if (!serverurl) {
-		statusText.value = "No SPF query server has been configured.";
+		statusText.value = "No verification server has been configured.";
 		return;
 	}
 	
 	// Load the message service, and scan the message headers.
 	// This bit is roughly based on a part of Enigmail.
 
-	statusText.value = "Scanning message headers...";	
+	statusText.value = "Scanning message headers...";
 	
     var msgService = messenger.messageServiceFromURI(uri);
     
@@ -305,7 +312,7 @@ function spfGo(manual) {
 			// DKHeader != null to make sure we only read the first DK header in the message.
 			DKHeader = h.substring(21, h.length);
 			hlast = "DK";
-			DKHeaderPostPosition = bytesread;
+			DKHeaderPostPosition = bytesread; // message hash starts from this position
 		}
 
 		h = "";
@@ -582,7 +589,7 @@ function spfGoFinish() {
 				statusText.value = "Sender Domain Verified";
 				statusText.style.color = null;
 			} else {
-				statusText.value = "Sender Domain <" + QueryReturn.domain + "> Verified";
+				statusText.value = "Sending Domain <" + QueryReturn.domain + "> Verified";
 				statusText.style.color = "red";
 
 				if (QueryReturn.promptToTrust) {
@@ -606,11 +613,11 @@ function spfGoFinish() {
 			statusText.style.color = "red";
 			break;
 		case "none":
-			statusText.value = "Sending domain does not support verification.  Address could be forged.";
+			statusText.value = "Sending domain does not support verification.  (Address could be forged.)";
 			statusText.style.color = "blue";
 			break;
 		case "neutral":
-			statusText.value = "Sender cannot be verified by domain.  Address could be forged.";
+			statusText.value = "Sender cannot be verified by domain.  (Address could be forged.)";
 			statusText.style.color = "blue";
 			break;
 		case "spamming":
@@ -626,7 +633,7 @@ function spfGoFinish() {
 }
 
 function SPFSendQuery(helo, ip, email_from, email_envelope, dkheader, dkhash, func, status) {
-	statusText.value = "Contacting SPF query server...";
+	statusText.value = "Contacting verification server...";
 	
 	// Prepare the URL of the query.
 	
@@ -660,6 +667,12 @@ function SPFSendQuery(helo, ip, email_from, email_envelope, dkheader, dkhash, fu
 
 function SPFSendQuery2(func) {	
 	// Don't know how better to get the information out of the XML...
+	
+	if (xmlhttp.responseXML == null) {
+		statusText.value = "There was a server error.";
+		statusText.style.color = "blue";
+		return;
+	}
 	
 	var e = xmlhttp.responseXML.documentElement.firstChild;
 	while (e && e.nodeName != "response") {
