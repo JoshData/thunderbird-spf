@@ -32,6 +32,7 @@ var prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(
 
 var serverurl = "";
 var checkonload = "";
+var usedk = "";
 
 // GLOBAL VARIABLES
 // Yes it's a bad way to program, but it seems necessary in order
@@ -46,6 +47,8 @@ var IPAddr = null;
 
 var HeloName2 = null;
 var IPAddr2 = null;
+
+var DKHash = null;
 
 var ret = null;
 var retFrom = null;
@@ -77,6 +80,11 @@ function spfLoadSettings() {
 	checkonload = "";
 	if (prefs.getPrefType("spf.checkonload") == prefs.PREF_STRING) {
 		checkonload = prefs.getCharPref("spf.checkonload");
+	}
+	
+	usedk = "";
+	if (prefs.getPrefType("spf.domainkeys") == prefs.PREF_STRING) {
+		usedk = prefs.getCharPref("spf.domainkeys");
 	}
 }
 
@@ -156,7 +164,6 @@ function spfGo(manual) {
 		return;
 	}
 	
-	var c;
 	var h = "";
 
 	FromHdr = null;
@@ -168,9 +175,17 @@ function spfGo(manual) {
 	
 	HeloName2 = null;
 	IPAddr2 = null;
+	
+	DKHash = null;
 
 	var mode = 0;
+	var hcont = false;
+	var hlast = "";
+	var bytesread = 0;
 	
+	var DKHeader = null;
+	var DKHeaderPostPosition = null;
+
 	// For some reason, when reading an email with attachments, except for the first email read,
 	// the next line freezes thunderbird.  Only with IMAP accounts I think.
 	scriptableinput.available();
@@ -181,19 +196,35 @@ function spfGo(manual) {
 		var cs = scriptableinput.read(512)
 		for (var csi = 0; csi < cs.length; csi++) {
 		var c = cs.charAt(csi);
+		bytesread++;
 		
 		if (c == "\r") { continue; }
-		if (c == " " && h == "") { continue; }
+		if ((c == " " || c == "\t") && h == "") { hcont = true; continue; }
 		
 		if (c != "\n") { h += c; continue; }
 			
 		// end of headers
 		if (h == "") { endofheaders = true; break; }
 		
-		// handle header
-		var m;
+		// handle a continued header line
+		if (hcont) {
+			if (hlast == "DK") {
+				DKHeader += h;
+				DKHeaderPostPosition = bytesread;
+			}
+			
+			hcont = false;
+			h = "";
+			continue;
+		}
 		
+		// handle header
+
+		hlast = "";
+
 		// Compare the header to the regular expressions.
+		
+		var m;
 		
 		m = ReturnPathRegEx.exec(h);
 		if (m) { EnvFrom = m[1]; }
@@ -262,8 +293,16 @@ function spfGo(manual) {
 				mode++;
 			}
 		}
+	
+		if (startsWith(h, "DomainKey-Signature: ") && DKHeader == null) {
+			// DKHeader != null to make sure we only read the first DK header in the message.
+			DKHeader = h.substring(21, h.length);
+			hlast = "DK";
+			DKHeaderPostPosition = bytesread;
+		}
 
 		h = "";
+		hcont = false;
 		
 		}
 		if (endofheaders) break;
@@ -305,20 +344,190 @@ function spfGo(manual) {
 		statusText.value = "Mail appears to originate from your mail server.";
 		return;
 	}
+
+	// Interpret the DK header
+	if (FromHdr != null && DKHeader != null && DKHeader != "" && usedk == "yes") {
+		mode = 0;
+		h = "";
+		var v;
+		
+		var DK_ALGO = "rsa-sha1";
+		var DK_SIG = null;
+		var DK_CAN = null;
+		var DK_DOMAIN = null;
+		var DK_HEADERS = null;
+		var DK_QMETHOD = null;
+		var DK_SELECTOR = null;
+		
+		for (var csi = 0; csi < DKHeader.length; csi++) {
+			var c = DKHeader.charAt(csi);
+			if (c == " " || c == "\t") continue;
+			if (mode == 0) {
+				if (c == "=") {
+					mode = 1;
+					v = "";
+				} else {
+					h += c;
+				}
+			} else {
+				if (c != ";")
+					v += c;
+				if (c == ";" || csi == DKHeader.length-1) {
+					switch (h) {
+						case "a": DK_ALGO = v; break;
+						case "b": DK_SIG = v; break;
+						case "c": DK_CAN = v; break;
+						case "d": DK_DOMAIN = v; break;
+						case "h": DK_HEADERS = ":" + v.toLowerCase() + ":"; break;
+						case "q": DK_QMETHOD = v; break;
+						case "s": DK_SELECTOR = v; break;
+					}
+					
+					mode = 0;
+					h = "";
+				}
+			}
+		}
+		
+		// Check that required tags are present, and if so compute the email hash
+		if (DK_SIG != null && (DK_CAN == "simple" || DK_CAN == "nofws") && DK_DOMAIN != null && DK_QMETHOD != null && DK_SELECTOR != null && (endsWith(FromHdr, "@" + DK_DOMAIN) || endsWith(FromHdr, "." + DK_DOMAIN))) {
+			// Load up a new scriptable input stream
+			var consumer = Components.classes["@mozilla.org/network/sync-stream-listener;1"]
+				.createInstance().QueryInterface(Components.interfaces.nsIInputStream);
+			var input = Components.classes["@mozilla.org/scriptableinputstream;1"]
+				.createInstance().QueryInterface(Components.interfaces.nsIScriptableInputStream);
+			input.init(consumer);
+			msgService.streamMessage(uri, consumer, msgWindow, null, false, null)
+			
+			// Move past the first DK header
+			input.read(DKHeaderPostPosition);
+			
+			// Start reading the email in chunks of lines.  Both hash methods are line-based.
+			mode = 0;
+			var line = "";
+			var hashdata = "";
+			var hlast = null;
+			var hcont = false;
+			var trailingLines = "";
+			
+			sha1_incremental_init();
+			
+			while (input.available()) {
+				var cs = input.read(512);
+				
+				// Ensure the email ends with a new line so the last line
+				// is proceesed.
+				if (!input.available() && !endsWith(cs, "\n"))
+					cs += "\n";
+				
+				for (var csi = 0; csi < cs.length; csi++) {
+					var c = cs.charAt(csi);
+					
+					if (mode == 0 && line == "" && (c == "\t" || c == " "))
+						hcont = true;
+					
+					// Remove folding whitespace
+					if (DK_CAN == "nofws" && (c == "\t" || c == " ")) continue;
+					
+					if (c == "\r") { continue; }
+					if (c != "\n") { line += c; continue; }
+					
+					// We've reached the end of a line
+					
+					var skipLine = false;
+					
+					// If the "h" tag is used, only those header lines (and their
+					// continuation lines if any) added to the "h" tag list are
+					// included.
+					if (mode == 0 && DK_HEADERS != null && line != "") {
+						// What is the header of this line.
+						var header;
+						if (hcont) {
+							header = hlast;
+						} else {
+							var colon = line.indexOf(":");
+							header = line.substring(0, colon).toLowerCase();
+							hlast = header;
+						}
+						
+						if (DK_HEADERS.indexOf(":" + header + ":") == -1) {
+							// skip this header
+							skipLine = true;
+						}
+					}
+					
+					line += "\r\n";
+					
+					// Trailing empty lines are ignored.  They are added back
+					// the next time we have data.
+					if (line == "\r\n") {
+						skipLine = true;
+						trailingLines += line;
+					}
+					
+					if (!skipLine) {
+						// We have data, so any lines buffered that might have been trailing
+						// are taken out of the buffer and put into the hashdata.
+						hashdata += trailingLines;
+						trailingLines = "";
+
+						if (DK_CAN == "nofws" && mode == 0 && hcont && hashdata.length >= 2) {
+							// Header continuation lines are unwrapped so that header lines are
+							// processed as a single line.  This involves double-backing on
+							// hashdata: removing the last line ending.
+							hashdata = hashdata.substring(0, hashdata.length-2);
+						}
+					
+						hashdata += line;
+					}
+						
+					// Don't feed the hash algorithm in the header section because
+					// with the nofws method, hashdata changes when there are header
+					// continuation lines.
+					while (mode == 1 && hashdata.length >= (64*4)) {
+						var hasharg = hashdata.substring(0, (64*4));
+						hashdata = hashdata.substring(hasharg.length, hashdata.length);
+						sha1_incremental_block(hasharg, false);
+					}
+					
+					// end of headers
+					if (mode == 0 && line == "\r\n") { mode = 1; }
+					
+					line = "";
+					hcont = false;
+				}
+			}
+
+			if (hashdata.length > 0)
+				sha1_incremental_block(hashdata, true);
+			
+			DKHash = sha1_incremental_end_base64();
+			
+			// Close the stream
+			input.close();
+		}
+	}
+
 	
 	// Run the query.
 	
-	SPFSendQuery(HeloName, IPAddr, FromHdr, "spfGo3()", serverurl);
+	SPFSendQuery(HeloName, IPAddr, FromHdr, DKHash == null ? null : DKHeader, "spfGo3()", serverurl);
 }
 
 function spfGo3() {	
 	retFrom = ret;
 	retEnv = null;
 	
+	// If a DomainKeys signature verified...
+	if (DKHash != null && startsWith(retFrom.dksig, DKHash)) {
+		retFrom.result = "pass";
+		retFrom.comment = "DK";
+	}
+	
 	// If the From: address did not pass and there is a different envelope
 	// address, scan that address.
 	if (EnvFrom && EnvFrom != FromHdr && retFrom.result != "pass") {
-		SPFSendQuery(HeloName, IPAddr, EnvFrom, "spfGo5()", "forward or forged");
+		SPFSendQuery(HeloName, IPAddr, EnvFrom, null, "spfGo5()", "forward or forged");
 		return;
 	}
 		
@@ -336,7 +545,7 @@ function spfGo5() {
 	if (retEnv.result == "pass" && prefs.getPrefType(prefname) == prefs.PREF_STRING && prefs.getCharPref(prefname) == "trust"
 		&& HeloName2 && IPAddr2) {
 		retEnv.trust = 1;
-		SPFSendQuery(HeloName2, IPAddr2, FromHdr, "spfGo6()", "forward check");
+		SPFSendQuery(HeloName2, IPAddr2, FromHdr, null, "spfGo6()", "forward check");
 		return;
 	}
 	
@@ -398,6 +607,8 @@ function spfGoFinish() {
 			statusText.value = "Sender Domain Verified";
 			if (retEnv && retEnv.trust)
 				statusText.value += " (via " + retEnv.domain + ")";
+			if (retFrom.comment == "DK")
+				statusText.value += " (with DomainKeys)";
 			break;
 		case "fail":
 			statusText.value = "Forged Address.  This is not a legitimate <" + retFrom.domain + "> email.";
@@ -424,7 +635,7 @@ function spfGoFinish() {
 	}
 }
 
-function SPFSendQuery(helo, ip, email, func, status) {
+function SPFSendQuery(helo, ip, email, dkheader, func, status) {
 	statusText.value = "Contacting SPF query server...";
 	
 	// Prepare the URL of the query.
@@ -432,6 +643,10 @@ function SPFSendQuery(helo, ip, email, func, status) {
 	var url = serverurl;
 	url += "?agent=" + useragent;
 	url += "&helo=" + helo + "&ip=" + ip + "&envfrom=" + email;
+	
+	if (dkheader != null) {
+		url += "&dk=" + dkheader;
+	}
 	
 	// Query the server.
 
@@ -462,12 +677,14 @@ function SPFSendQuery2(email, func) {
 	var result;
 	var comment;
 	var reversedns;
+	var dksig;
 	
 	e = e.firstChild;
 	while (e) {
 		if (e.nodeName == "result") { result = e.textContent; }
 		if (e.nodeName == "comment") { comment = e.textContent; }
 		if (e.nodeName == "reversedns") { reversedns = e.textContent; }
+		if (e.nodeName == "dk-expected-hash") { dksig = e.textContent; }
 		e = e.nextSibling;
 	}
 
@@ -478,15 +695,16 @@ function SPFSendQuery2(email, func) {
 	var domain = m[1];
 	
 	// Return
-	ret = new QueryRet(result, comment, domain, reversedns);
+	ret = new QueryRet(result, comment, domain, reversedns, dksig);
 	window.setTimeout(func, 1);
 }
 
-function QueryRet(result, comment, domain, reversedns) {
+function QueryRet(result, comment, domain, reversedns, dksig) {
 	this.result = result;
 	this.comment = comment;
 	this.domain = domain;
 	this.reversedns = reversedns;
+	this.dksig = dksig;
 }
 
 function MyUrlListener() {

@@ -20,15 +20,26 @@
 		}
 		
 	    var spf_checkonload = document.getElementById("spf_checkonload");
-		spf_checkonload.checked = true
-		if (prefs.getPrefType("spf.checkonload") == prefs.PREF_STRING) {
-			var c = prefs.getCharPref("spf.checkonload");
-			if (c == "no")
-				spf_checkonload.checked = false
-		}
+		spf_checkonload.checked = true;
+		if (isPref("spf.checkonload", "no"))
+			spf_checkonload.checked = false;
 		
+	    var spf_usedk = document.getElementById("spf_usedk");
+		spf_usedk.checked = false;
+		if (isPref("spf.domainkeys", "yes"))
+			spf_usedk.checked = true;
+
 		initList("spf_mta", "spf.internal_mtas")
 		initList("spf_forwarder", "spf.forwarding_mtas")
+	}
+	
+	function isPref(prefname, prefvalue) {
+		if (prefs.getPrefType(prefname) == prefs.PREF_STRING) {
+			var c = prefs.getCharPref(prefname);
+			if (c == prefvalue)
+				return true;
+		}
+		return false;
 	}
 	
 	function initList(listboxname, prefname) {
@@ -52,6 +63,9 @@
 		
 	    var spf_checkonload = document.getElementById("spf_checkonload");
 		prefs.setCharPref("spf.checkonload", spf_checkonload.checked ? "yes" : "no");
+
+	    var spf_usedk = document.getElementById("spf_usedk");
+		prefs.setCharPref("spf.domainkeys", spf_usedk.checked ? "yes" : "no");
 	}
 	
 	function mtaUpdateList(listboxname, prefname) {
@@ -106,9 +120,10 @@
   </script>
 
   <vbox flex="1" style="width: 500px">
-	  <hbox>
+	  <vbox>
   	  <checkbox label="Check Every Email" id="spf_checkonload"/>
-	  </hbox>
+	  <checkbox label="Use Yahoo! DomainKeys" id="spf_usedk"/>
+	  </vbox>
   
   	  <separator class="groove-thin"/>
 	  

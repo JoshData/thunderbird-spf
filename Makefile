@@ -6,6 +6,7 @@ JARSOURCES=\
 
 XPISOURCES=\
 	install.rdf \
+	install.js \
 	chrome/spf.jar
 
 all: spf.xpi package
