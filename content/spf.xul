@@ -9,8 +9,8 @@
 	<vbox id="expandedHeaders">
 		<hbox class="headerBox" position="1" id="spfBox">
 			<vbox align="start">
-				<image class="collapsedHeaderViewButton"
-					onclick="spfLinkDiv = getElementById('spfLinkDiv'); if (spfLinkDiv.style.display) { spfLinkDiv.style.display = null; this.cssClass = 'expandedHeaderViewButton'; } else { spfLinkDiv.style.display = 'none'; this.cssClass = 'collapsedHeaderViewButton'; }"/>
+				<image class="collapsedHeaderViewButton" state="false"
+					onclick="spfLinkDiv = getElementById('spfLinkDiv'); if (spfLinkDiv.style.display) { spfLinkDiv.style.display = null; this.setAttribute('class', 'expandHeaderViewButton'); } else { spfLinkDiv.style.display = 'none'; this.setAttribute('class', 'collapsedHeaderViewButton'); }"/>
 			</vbox>
 			<hbox class="headerNameBox" align="start">
 				<label class="headerName" value=" Sender Verification:" flex="1"/>
@@ -27,7 +27,6 @@
 		<spacer/>
 	</vbox>
 	
-	<!-- TODO: shortcut key -->
 	<menupopup id="taskPopup">
 		<command id="sp_GoMenu_Command" label="Verify Sender (SPF/DK)" oncommand="spfGo(true);" />
 	
