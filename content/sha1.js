@@ -33,8 +33,7 @@ var incremental_c;
 var incremental_d;
 var incremental_e;
 var incremental_bits;
-
-//alert(sha1_vm_incremental_test());
+var incremental_size;
 
 /*
  * Incrementally compute the SHA-1.
@@ -42,13 +41,15 @@ var incremental_bits;
  
 function sha1_vm_incremental_test()
 {
+  var a = "abcdefghijklmnopqrstuvwxyz012345ABCDEFGHIJKLMNOPQRSTUVWXYZ678901";
+  var b = "109876ZYXWVUTSRQPONMLKJIHGFEDCBA543210zyxwvutsrqponmlkjihgfedcba";
+  var c = "abcdefghijklmnopqrstuvwxyz";
+	
   sha1_incremental_init();
-  sha1_incremental_block("abcdefghabcdefgh", false);
-  sha1_incremental_block("abcdefghabcdefgh", false);
-  sha1_incremental_block("abcdefghabcdefgh", false);
-  sha1_incremental_block("abcdefghabcdefgh", true);
-  alert(sha1_incremental_end());
-  return hex_sha1("abcdefghabcdefghabcdefghabcdefgh") == sha1_incremental_end();
+  sha1_incremental_block(a, false);
+  sha1_incremental_block(b, false);
+  sha1_incremental_block(c, true);
+  return hex_sha1(a + b + c) == sha1_incremental_end();
 }
 
 function sha1_incremental_init()
@@ -60,22 +61,28 @@ function sha1_incremental_init()
   incremental_d =  271733878;
   incremental_e = -1009589776;
   incremental_bits = 0;
+  incremental_size = 0;
 }
 
 function sha1_incremental_block(s, end) { core_sha1_incremental_block(str2binb(s),s.length * chrsz,end); }
 
-function sha1_incremental_end() { return binb2hex(core_sha1_incremental_end()); }
+function sha1_incremental_end_hex() { return binb2hex(core_sha1_incremental_end()); }
+function sha1_incremental_end_base64() { return binb2b64(core_sha1_incremental_end()); }
 
 function core_sha1_incremental_block(x, blocklen, end)
 {
+  incremental_bits += blocklen;
+  
   if (end) {
     /* append padding */
-	var totalbits = incremental_bits + blocklen;
-    x[(totalbits >> 5) - (incremental_bits>>5)] |= 0x80 << (24 - totalbits % 32);
-    x[((totalbits + 64 >> 9) << 4) + 15 - (incremental_bits>>5)] = totalbits;
+    x[(incremental_bits >> 5) - incremental_size] |= 0x80 << (24 - incremental_bits % 32);
+    x[((incremental_bits + 64 >> 9) << 4) + 15 - incremental_size] = incremental_bits;
+  } else {
+	  if ((blocklen % 512) != 0)
+		  alert("SHA1 incremental block lengths must be multiples of 64 characters.");
   }
 
-  incremental_bits += blocklen;
+  incremental_size += x.length;
 	
   for(var i = 0; i < x.length; i += 16)
   {
