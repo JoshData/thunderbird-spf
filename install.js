@@ -44,7 +44,7 @@ var XpiInstaller = {
 	// --- Editable items begin ---
 	extFullName: 'Sender Policy Framework Extension', // The name displayed to the user (don't include the version)
 	extShortName: 'spf', // The leafname of the JAR file (without the .jar part)
-	extVersion: '0.2',
+	extVersion: '0.5',
 	extAuthor: 'Joshua Tauberer',
 	extLocaleNames: null, // e.g. ['en-US', 'en-GB']
 	extSkinNames: null, // e.g. ['classic', 'modern']

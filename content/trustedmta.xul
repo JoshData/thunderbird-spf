@@ -17,7 +17,7 @@
 	of the email, when in fact that server was the recipient of the email at your
 	local institution.</description>
 
-	<description>If the server <label id="servername"/> is a part of your local institution,
+	<description>If the server <label id="servername" style="font-weight: bold"/> is a part of your local institution,
 	please follow the instructions below.</description>
 
 	<label class="header">How do I correct the problem?</label>

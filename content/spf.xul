@@ -3,33 +3,35 @@
 	  xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
 	  xmlns:html="http://www.w3.org/1999/xhtml">
 
-  <script type="application/x-javascript" src="chrome://spf/content/sha1.js" />
-  <script type="application/x-javascript" src="chrome://spf/content/spf.js" />
-
-  <vbox id="expandedHeaders">
-    <hbox class="headerBox" position="1" id="spfBox">
-      <hbox class="headerNameBox" align="start">
-         <vbox align="start">
-           <label class="headerName" value=" Sender Verification:" flex="1"/>
-         </vbox>
-         <vbox pack="start">
-           <description id="spfStatusText" value="Loading..."/>
-		    <html:div id="spfLinkDiv" style="font-size: 90%; color: blue; font-style: italic;">
-				<html:a id="spfLink" href="about:blank" target="_blank">Click for explanation.</html:a>
-				<html:span id="spfTrust" onclick="window.mta=this.mta; window.reversedns = this.reversedns; var w = window.open('chrome://spf/content/trusted' + this.linktype + '.xul', '', 'chrome');" style="cursor: pointer">Is this wrong?</html:span>
-			</html:div>
-         </vbox>
-      </hbox>
-    </hbox>
+	<script type="application/x-javascript" src="chrome://spf/content/sha1.js" />
+	<script type="application/x-javascript" src="chrome://spf/content/spf.js" />
 	
-   <spacer/>
-  </vbox>
-
-  	<!-- TODO: shortcut key -->
-    <menupopup id="taskPopup">
+	<vbox id="expandedHeaders">
+		<hbox class="headerBox" position="1" id="spfBox">
+			<vbox align="start">
+				<image class="collapsedHeaderViewButton"
+					onclick="spfLinkDiv = getElementById('spfLinkDiv'); if (spfLinkDiv.style.display) { spfLinkDiv.style.display = null; this.cssClass = 'expandedHeaderViewButton'; } else { spfLinkDiv.style.display = 'none'; this.cssClass = 'collapsedHeaderViewButton'; }"/>
+			</vbox>
+			<hbox class="headerNameBox" align="start">
+				<label class="headerName" value=" Sender Verification:" flex="1"/>
+				<vbox pack="start" width="100%">
+					<description id="spfStatusText" value="Loading..."/>
+					
+					<vbox id="spfLinkDiv" style="display: none; cursor: pointer;">
+						<description id="spfLink">Loading...</description>
+						<description id="spfTrust" onclick="window.mta=this.mta; window.reversedns = this.reversedns; var w = window.open('chrome://spf/content/trusted' + this.linktype + '.xul', '', 'chrome');" style="cursor: pointer; color: blue">Loading...</description>
+					</vbox>
+				</vbox>
+			</hbox>
+		</hbox>
+		<spacer/>
+	</vbox>
+	
+	<!-- TODO: shortcut key -->
+	<menupopup id="taskPopup">
 	   <menuseparator id="spf_GoMenuSeparator"/>
-        <menuitem id="spf_GoMenu"
-             label="Verify Sender (SPF)"
-             oncommand="spfGo(true);" />
-    </menupopup>
+		<menuitem id="spf_GoMenu"
+			 label="Verify Sender (SPF)"
+			 oncommand="spfGo(true);" />
+	</menupopup>
 </overlay>

@@ -16,7 +16,7 @@
 	sender might be wrong.  This happens often with mail lists, because the mail list servers
 	aren't explicitly permitted to use the domain names of the emails they forward.</description>
 
-	<description>If <label id="servername"/> is the server for a mail list or mail forwarder that
+	<description>If <label id="servername" style="font-weight: bold"/> is the server for a mail list or mail forwarder that
 	you subscribe to, and if you trust the server's administrators to not author malicious emails,
 	then continue reading.</description>
 

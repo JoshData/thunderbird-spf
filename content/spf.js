@@ -8,16 +8,17 @@
 
 // CONSTANTS
 
-var useragent = "spf:0.2"; // The useragent field sent to the query server
+var useragent = "spf:0.5"; // The useragent field sent to the query server
 
 // REGULAR EXPRESSIONS
 
 var ReturnPathRegEx = /^Return-Path: <([^>]+)>/;
 var ReceivedRegEx = /^Received: from ([\w\W]+) \([\w\W]*\[([\d\.]+)\]/; // The sendmail-style Received: header.
 var ReceivedRegEx2 = /^Received: from \[([\d\.]+)\] \(helo=([^)]+)\)/; // An apparently Exim-style header: Received: from [65.54.185.19] (helo=hotmail.com)
-var ReceivedRegEx3 = /^Received: from ([\w\W]+) \(([\d\.]+)\)/; // Yet another format
-var FromRegEx = /^From: [^<]*<([^>]+)>|^From: ([\w\d\._-]+@[\w\d\._-]+)/;	
-var DateRegEx = /^Date: ([\w\W]+)/;
+var ReceivedRegEx3 = /^Received: from ([\w\.]+) \(([\d\.]+)\)/; // Yet another format
+var ReceivedRegEx4 = /^Received: from [\w\W]+\(HELO ([\w\.]+)\) \(([\d\.]+)\)/; // Yet another format
+var FromRegEx = /^From: [^<]*<([^>]+)>|^From: ([\w\d\._-]+@[\w\d\._-]+)/i;	
+var DateRegEx = /^Date: ([\w\W]+)/i;
 
 // MISC
 
@@ -50,13 +51,11 @@ var IPAddr2 = null;
 
 var DKHash = null;
 
-var ret = null;
-var retFrom = null;
-var retEnv = null;
+var QueryReturn = null;
+var QueryReturn2 = null;
 
 var spfBox;
 var statusText;
-var spfLinkDiv;
 var statusLink;
 var statusTrust;
 
@@ -100,7 +99,6 @@ function spfGo(manual) {
 	statusText = document.getElementById("spfStatusText");
 	goMenu = document.getElementById("spf_GoMenu");
 	goMenuSep = document.getElementById("spf_GoMenuSeparator");	
-	spfLinkDiv = document.getElementById("spfLinkDiv");
 	statusLink = document.getElementById("spfLink");
 	statusTrust = document.getElementById("spfTrust");
 	
@@ -112,8 +110,8 @@ function spfGo(manual) {
 	statusText.style.color = null;
     statusText.style.display = "none";
 	
-	spfLinkDiv.style.display = "none";
-	statusLink.href = "";
+	statusLink.style.display = "none";
+	statusTrust.style.display = "none";
 	if (!manual) {
 		goMenu.hidden = true;
 		goMenuSep.hidden = true;
@@ -227,12 +225,13 @@ function spfGo(manual) {
 		var m;
 		
 		m = ReturnPathRegEx.exec(h);
-		if (m) { EnvFrom = m[1]; }
+		if (m) { EnvFrom = m[1].toLowerCase(); }
 		
 		m = FromRegEx.exec(h);
 		if (m) {
 			FromHdr = m[1];
 			if (!FromHdr) { FromHdr = m[2]; }
+			FromHdr = FromHdr.toLowerCase();
 		}
 		
 		m = DateRegEx.exec(h);
@@ -248,6 +247,9 @@ function spfGo(manual) {
 		if (m) { ip = m[1]; he = m[2]; }
 			
 		m = ReceivedRegEx3.exec(h);
+		if (m) { ip = m[1]; he = m[2]; }
+
+		m = ReceivedRegEx4.exec(h);
 		if (m) { ip = m[1]; he = m[2]; }
 
 		if (he != null && ip != null) {
@@ -377,7 +379,7 @@ function spfGo(manual) {
 						case "a": DK_ALGO = v; break;
 						case "b": DK_SIG = v; break;
 						case "c": DK_CAN = v; break;
-						case "d": DK_DOMAIN = v; break;
+						case "d": DK_DOMAIN = v.toLowerCase(); break;
 						case "h": DK_HEADERS = ":" + v.toLowerCase() + ":"; break;
 						case "q": DK_QMETHOD = v; break;
 						case "s": DK_SELECTOR = v; break;
@@ -483,8 +485,10 @@ function spfGo(manual) {
 						
 					// Don't feed the hash algorithm in the header section because
 					// with the nofws method, hashdata changes when there are header
-					// continuation lines.
-					while (mode == 1 && hashdata.length >= (64*4)) {
+					// continuation lines.  Also, ensure there is data left in hashdata
+					// after this so that it can be used at the very end to close
+					// the hash computation.
+					while (mode == 1 && hashdata.length > (64*4)) {
 						var hasharg = hashdata.substring(0, (64*4));
 						hashdata = hashdata.substring(hasharg.length, hashdata.length);
 						sha1_incremental_block(hasharg, false);
@@ -511,141 +515,130 @@ function spfGo(manual) {
 	
 	// Run the query.
 	
-	SPFSendQuery(HeloName, IPAddr, FromHdr, DKHash == null ? null : DKHeader, "spfGo3()", serverurl);
+	SPFSendQuery(
+		HeloName, IPAddr,
+		FromHdr, EnvFrom != null && EnvFrom != FromHdr ? EnvFrom : null,
+		DKHash == null ? null : DKHeader, DKHash,
+		"spfGo2()", serverurl);
 }
 
-function spfGo3() {	
-	retFrom = ret;
-	retEnv = null;
-	
-	// If a DomainKeys signature verified...
-	if (DKHash != null && startsWith(retFrom.dksig, DKHash)) {
-		retFrom.result = "pass";
-		retFrom.comment = "DK";
-	}
-	
-	// If the From: address did not pass and there is a different envelope
-	// address, scan that address.
-	if (EnvFrom && EnvFrom != FromHdr && retFrom.result != "pass") {
-		SPFSendQuery(HeloName, IPAddr, EnvFrom, null, "spfGo5()", "forward or forged");
-		return;
-	}
-		
-	spfGoFinish();
-}
+function spfGo2() {	
+	var prefname = "spf.forwarder." + QueryReturn.domain;
+	var domainTrusted = (prefs.getPrefType(prefname) == prefs.PREF_STRING && prefs.getCharPref(prefname) == "trust");
 
-function spfGo5() {
-	retEnv = ret;
-	
-	// If the envelope passed, then possibly this is a forwarded message.
-	// If the user trusts the forwarder, see if the *next* Received: line
-	// authorizes the use of the From: address.
-	var prefname = "spf.forwarder." + retEnv.domain;
-	retEnv.trust = 0;
-	if (retEnv.result == "pass" && prefs.getPrefType(prefname) == prefs.PREF_STRING && prefs.getCharPref(prefname) == "trust"
-		&& HeloName2 && IPAddr2) {
-		retEnv.trust = 1;
-		SPFSendQuery(HeloName2, IPAddr2, FromHdr, null, "spfGo6()", "forward check");
-		return;
+	// If it was the envelope address that passed, if that domain is trusted, and if we have
+	// further Received: header information, then this is a trusted forwarder.
+	if (HeloName2 && IPAddr2 && EnvFrom
+		&& QueryReturn.result == "pass"
+		&& !endsWith(FromHdr, "@" + QueryReturn.domain)
+		&& endsWith(EnvFrom, "@" + QueryReturn.domain)) {
+		if (domainTrusted) {
+			QueryReturn2 = QueryReturn;
+			SPFSendQuery(HeloName2, IPAddr2, FromHdr, null, null, null, "spfGo3()", "forward check");
+			return;
+		} else {
+			QueryReturn.promptToTrust = 1;
+		}
 	}
 	
 	spfGoFinish();
 }
 
-function spfGo6() {
-	var retFrom2 = ret;
-	if (retFrom2 && retFrom2.result != "fail") {
-		retFrom = retFrom2;
-	}
-	
+function spfGo3() {
+	QueryReturn.trustedForwarder = QueryReturn2.domain;
 	spfGoFinish();
 }
 
 function spfGoFinish() {	
-	// When the sender is not verified...
-	if (retFrom.result != "pass") {
-		// Show the second line of explanations
-		spfLinkDiv.style.display = null;
-		statusTrust.style.display = null;
+	// Set up the explanation label.
+	statusLink.style.display = null;
+	if (QueryReturn.comment == "")
+		statusLink.value = "No explanation is available for this message.";
+	else
+		statusLink.value = QueryReturn.comment;
 
-		// There better be a link in the comment, so set up the link for it.
-		var CommentUrlRegEx = /(http:[^ ]+)/;
-		var curl = CommentUrlRegEx.exec(retFrom.comment);
-		if (curl) {
-			statusLink.href = curl[1];
-		} else {
-			statusLink.href = "about:blank";
-		}
-		
-		// If the From: address failed but the envelope passed and the envelope sender is not
-		// trusted, the user might want to trust the envelope sender.
-		if (retEnv && retEnv.result == "pass" && !retEnv.trust) {
-			statusText.value = "Warning: Sender is <" + retEnv.domain + ">.  Address below may be forged.";
-			statusText.style.color = "red";
-			statusTrust.linktype = "forwarder";
-			statusTrust.mta = retEnv.domain;
-			statusTrust.childNodes[0].nodeValue = "Is " + retEnv.domain + " a mail list?";
-			return;
-		}
-		
+	// When the sender is not verified...
+	if (QueryReturn.result != "pass" && QueryReturn.method != "surbl" && QueryReturn.result != "none") {
 		// If the forwarder is trusted, don't show the internal network message. 
-		if (retEnv && retEnv.trust) {
-			statusTrust.style.display = "none";
-		} else {
+		if (!QueryReturn.trustedForwarder) {
 			// If it's not possibly a forwarder, then show the internal network server link.
+			statusTrust.style.display = null;
 			statusTrust.childNodes[0].nodeValue = "Is " + HeloName + " in your network?";
 			statusTrust.linktype = "mta";
 			statusTrust.mta = IPAddr;
-			statusTrust.reversedns = retFrom.reversedns;
+			statusTrust.reversedns = QueryReturn.reversedns;
 		}
 	}
 	
 	// Show the user the result of the query.
 	
-	switch (retFrom.result) {
+	switch (QueryReturn.result) {
 		case "pass":
-			statusText.value = "Sender Domain Verified";
-			if (retEnv && retEnv.trust)
-				statusText.value += " (via " + retEnv.domain + ")";
-			if (retFrom.comment == "DK")
-				statusText.value += " (with DomainKeys)";
+			if (endsWith(FromHdr, "@" + QueryReturn.domain)) {
+				statusText.value = "Sender Domain Verified";
+				statusText.style.color = null;
+			} else {
+				statusText.value = "Sender Domain <" + QueryReturn.domain + "> Verified";
+				statusText.style.color = "red";
+
+				if (QueryReturn.promptToTrust) {
+					statusTrust.style.display = null;
+					statusTrust.linktype = "forwarder";
+					statusTrust.mta = QueryReturn.domain;
+					statusTrust.childNodes[0].nodeValue = "Is " + QueryReturn.domain + " a mail list?";
+					return;
+				}
+			}
+			
+			if (QueryReturn.trustedForwarder)
+				statusText.value += " (via " + QueryReturn.trustedForwarder + ")";
+			if (QueryReturn.method == "spf")
+				statusText.value += " [SPF]";
+			if (QueryReturn.method == "dk")
+				statusText.value += " [DomainKeys]";
 			break;
 		case "fail":
-			statusText.value = "Forged Address.  This is not a legitimate <" + retFrom.domain + "> email.";
+			statusText.value = "This does not appear to be a legitimate <" + QueryReturn.domain + "> email.";
 			statusText.style.color = "red";
 			break;
-		case "softfail":
+		case "none":
+			statusText.value = "Sending domain does not support verification.  Address could be forged.";
+			statusText.style.color = "blue";
+			break;
 		case "neutral":
 			statusText.value = "Sender cannot be verified by domain.  Address could be forged.";
 			statusText.style.color = "blue";
 			break;
-		case "none":
-			statusText.value = "Domain <" + retFrom.domain + "> does not support SPF sender verification.";
-			statusText.style.color = "blue";
-			break;
 		case "spamming":
 		case "phishing":
-			statusText.value = retFrom.comment;
+			statusText.value = QueryReturn.comment;
 			statusText.style.color = "red";
 			break;
 		default:
-			statusText.value = "Error: " + retFrom.comment;
+			statusText.value = "Error: " + QueryReturn.comment;
 			statusText.style.color = "red";
 			break;
 	}
 }
 
-function SPFSendQuery(helo, ip, email, dkheader, func, status) {
+function SPFSendQuery(helo, ip, email_from, email_envelope, dkheader, dkhash, func, status) {
 	statusText.value = "Contacting SPF query server...";
 	
 	// Prepare the URL of the query.
 	
 	var url = serverurl;
 	url += "?agent=" + useragent;
-	url += "&helo=" + helo + "&ip=" + ip + "&envfrom=" + email;
+	url += "&helo=" + helo + "&ip=" + ip;
 	
-	if (dkheader != null) {
-		url += "&dk=" + dkheader;
+	if (email_from != null)
+		url += "&from=" + email_from;
+
+	if (email_envelope != null)
+		url += "&envfrom=" + email_envelope;
+	
+	if (dkheader != null && dkhash != null) {
+		url += "&domainkeys_header=" + dkheader;
+		url += "&domainkeys_hash=" + dkhash;
 	}
 	
 	// Query the server.
@@ -656,12 +649,12 @@ function SPFSendQuery(helo, ip, email, dkheader, func, status) {
 		statusText.style.color = "blue";
 	};
 	xmlhttp.onload = function() {
-		SPFSendQuery2(email, func);
+		SPFSendQuery2(func);
 	};
 	xmlhttp.send(null);
 }
 
-function SPFSendQuery2(email, func) {	
+function SPFSendQuery2(func) {	
 	// Don't know how better to get the information out of the XML...
 	
 	var e = xmlhttp.responseXML.documentElement.firstChild;
@@ -677,34 +670,30 @@ function SPFSendQuery2(email, func) {
 	var result;
 	var comment;
 	var reversedns;
-	var dksig;
+	var domain;
+	var method;
 	
 	e = e.firstChild;
 	while (e) {
 		if (e.nodeName == "result") { result = e.textContent; }
 		if (e.nodeName == "comment") { comment = e.textContent; }
 		if (e.nodeName == "reversedns") { reversedns = e.textContent; }
-		if (e.nodeName == "dk-expected-hash") { dksig = e.textContent; }
+		if (e.nodeName == "domain") { domain = e.textContent; }
+		if (e.nodeName == "method") { method = e.textContent; }
 		e = e.nextSibling;
 	}
 
-	// Get the domain-part of the address.
-
-	var DomainRegEx = /@([\w\d\._-]+)$/i;
-	var m = DomainRegEx.exec(email);
-	var domain = m[1];
-	
 	// Return
-	ret = new QueryRet(result, comment, domain, reversedns, dksig);
+	QueryReturn = new QueryRet(result, comment, domain, reversedns, method);
 	window.setTimeout(func, 1);
 }
 
-function QueryRet(result, comment, domain, reversedns, dksig) {
+function QueryRet(result, comment, domain, reversedns, method) {
 	this.result = result;
 	this.comment = comment;
 	this.domain = domain;
 	this.reversedns = reversedns;
-	this.dksig = dksig;
+	this.method = method;
 }
 
 function MyUrlListener() {
