@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<RDF xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+		xmlns:em="http://www.mozilla.org/2004/em-rdf#">
+
+	<Description about="urn:mozilla:install-manifest">
+		<em:id>{ff7e40e0-08b4-11d9-9669-0800200c9a66}</em:id>
+
+		<em:name>Sender Policy Framework Extension</em:name>
+		<em:description>Checks emails against SPF records.  Protects you from phishing.</em:description>
+
+		<em:version>0.21:2004-12-03</em:version>
+
+		<em:creator>Joshua Tauberer (tauberer@for.net)</em:creator>
+		<em:homepageURL>http://taubz.for.net/code/spf</em:homepageURL>
+		
+		<em:optionsURL>chrome://spf/content/options.xul</em:optionsURL>
+	
+		<em:file>
+			<Description about="urn:mozilla:extension:file:spf.jar">
+				<em:package>content/</em:package>
+			</Description>
+		</em:file>
+
+		<em:targetApplication>
+			<Description>
+				<!-- Thunderbird -->
+				<em:id>{3550f703-e582-4d05-9a08-453d09bdfdc6}</em:id>
+				<em:minVersion>0.8</em:minVersion>
+				<em:maxVersion>1.0</em:maxVersion>
+			</Description>
+		</em:targetApplication>
+	
+	</Description>
+
+</RDF>

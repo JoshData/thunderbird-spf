@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<overlay id="spfOverlay" 
+	  xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+	  xmlns:html="http://www.w3.org/1999/xhtml">
+
+  <!--<script type="application/x-javascript" src="chrome://spf/content/sha1.js" />-->
+  <script type="application/x-javascript" src="chrome://spf/content/spf.js" />
+
+  <vbox id="expandedHeaders">
+    <hbox class="headerBox" position="1" id="spfBox">
+      <hbox class="headerNameBox" align="start">
+         <vbox align="start">
+           <label class="headerName" value=" Sender Verification:" flex="1"/>
+         </vbox>
+         <vbox pack="start">
+           <description id="spfStatusText" value="Loading..."/>
+		    <html:div id="spfLinkDiv" style="font-size: 90%; color: blue; font-style: italic;">
+				<html:a id="spfLink" href="about:blank" target="_blank">Click for explanation.</html:a>
+				<html:span id="spfTrust" onclick="window.mta=this.mta; window.reversedns = this.reversedns; var w = window.open('chrome://spf/content/trusted' + this.linktype + '.xul', '', 'chrome');" style="cursor: pointer">Is this wrong?</html:span>
+			</html:div>
+         </vbox>
+      </hbox>
+    </hbox>
+	
+   <spacer/>
+  </vbox>
+
+  	<!-- TODO: shortcut key -->
+    <menupopup id="taskPopup">
+	   <menuseparator id="spf_GoMenuSeparator"/>
+        <menuitem id="spf_GoMenu"
+             label="Verify Sender (SPF)"
+             oncommand="spfGo(true);" />
+    </menupopup>
+</overlay>

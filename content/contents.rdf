@@ -1,0 +1,25 @@
+<?xml version="1.0"?> 
+<RDF:RDF xmlns:RDF="http://www.w3.org/1999/02/22-rdf-syntax-ns#" 
+		  xmlns:chrome="http://www.mozilla.org/rdf/chrome#"> 
+
+<RDF:Seq about="urn:mozilla:package:root"> 
+  <RDF:li resource="urn:mozilla:package:spf"/> 
+</RDF:Seq> 
+
+<RDF:Description about="urn:mozilla:package:spf" 
+	  chrome:displayName="Sender Policy Framework Extension" 
+	  chrome:author="Joshua Tauberer (tauberer@for.net)" 
+	  chrome:name="spf"
+	  chrome:extension="true"
+	  chrome:description="Checks emails against SPF records.  Protects you from phishing."> 
+</RDF:Description>
+
+<RDF:Seq about="urn:mozilla:overlays">
+    <RDF:li resource="chrome://messenger/content/msgHdrViewOverlay.xul"/>
+</RDF:Seq>
+
+<RDF:Seq about="chrome://messenger/content/msgHdrViewOverlay.xul">
+  <RDF:li>chrome://spf/content/spf.xul</RDF:li>
+</RDF:Seq>
+
+</RDF:RDF>

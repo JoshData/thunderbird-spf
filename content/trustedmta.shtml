@@ -1,0 +1,43 @@
+<html>
+
+<head>
+	<title>Thunderbird SPF Extension: Trusting Your Mail Server</title>
+</head>
+
+<body>
+	<p>(This page is under development.)</p>
+	
+	<P>If the server <!--#exec cmd="dig +short -x $QUERY_STRING_UNESCAPED" -->
+	(<!--#echo var="QUERY_STRING_UNESCAPED" -->) is a part of your local institution,
+	please follow the instructions below.</P>
+	
+	<h3>Why was there a problem?</h3>
+
+	<p>The email you were viewing was rejected because the apparent sender of the email
+	was not authorized to use the domain name found in the From: header.</p>
+
+	<P>Long story short, the Thunderbird SPF Extension will not realize if the last server to
+	see the email was not the original sender but actually a mail server at your own institution.
+	When this happens, the Thunderbird SPF Extension will reject the email because the mail
+	server does not have the authority to use the sender's domain name.</P>
+	
+	<h3>How do I correct the problem?</h3>
+
+	<P>You can tell the Thunderbird SPF Extension which servers are a part of your
+	institution's email system to avoid this problem.</P>
+	
+	<P>You will need to edit your Thunderbird user preferences file.  On Linux, this file
+	is in ~/.thunderbird/[profile name]/[random-string]/user.js.  I don't know where this file is
+	on Windows.</P>
+	
+	<P>Add the following line to the file.</P>
+	
+	<P><TT>user_pref("spf.host.<!--#echo var="QUERY_STRING_UNESCAPED" -->", "trust");</TT></P>
+	
+	<P>Then restart Thunderbird.</P>
+	
+	<P>Note that only IP addresses, and not hostnames, may be used in spf.host records
+	in the preferences file.</P>
+</body>
+
+</html>

@@ -1,0 +1,156 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
+<?xml-stylesheet href="chrome://communicator/skin/" type="text/css"?>
+<dialog id="spfOptions"
+        title="SPF Extension Options"
+		buttons="accept"
+        xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+        onload="setFields();"
+		ondialogaccept="doAccept()"
+        >
+
+  <script>
+  
+	var prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
+
+	function setFields() {
+	    var spf_queryserver = document.getElementById("spf_queryserver");
+		if (prefs.getPrefType("spf.queryserver") == prefs.PREF_STRING) {
+			spf_queryserver.value = prefs.getCharPref("spf.queryserver");
+		}
+		
+	    var spf_checkonload = document.getElementById("spf_checkonload");
+		spf_checkonload.checked = true
+		if (prefs.getPrefType("spf.checkonload") == prefs.PREF_STRING) {
+			var c = prefs.getCharPref("spf.checkonload");
+			if (c == "no")
+				spf_checkonload.checked = false
+		}
+		
+		initList("spf_mta", "spf.internal_mtas")
+		initList("spf_forwarder", "spf.forwarding_mtas")
+	}
+	
+	function initList(listboxname, prefname) {
+		var listbox = document.getElementById(listboxname);		
+		if (prefs.getPrefType(prefname) == prefs.PREF_STRING) {
+			var mtas;
+			mtas = prefs.getCharPref(prefname);
+			if (mtas == "") { return; }
+			mtas = mtas.split(",");
+			if (mtas == null) { return; }
+			for (i = 0; i &lt; mtas.length; i++) {
+				if (mtas[i] == null || mtas[i] == "") { continue; }
+				listbox.appendItem(mtas[i], mtas[i]);
+			}
+		}
+	}
+	
+	function doAccept() {
+	    var spf_queryserver = document.getElementById("spf_queryserver");
+		prefs.setCharPref("spf.queryserver", spf_queryserver.value);
+		
+	    var spf_checkonload = document.getElementById("spf_checkonload");
+		prefs.setCharPref("spf.checkonload", spf_checkonload.checked ? "yes" : "no");
+	}
+	
+	function mtaUpdateList(listboxname, prefname) {
+		var listbox = document.getElementById(listboxname);
+		var mtas = "";
+		var i;
+		for (i = 0; i &lt; listbox.getRowCount(); i++) {
+			if (i != 0) { mtas += ","; }
+			mtas += listbox.getItemAtIndex(i).value;
+		}
+		prefs.setCharPref(prefname, mtas);
+	}
+	
+	function doRemoveList(listboxname, listprefname, listprefprefix) {
+		var listbox = document.getElementById(listboxname);
+		if (listbox.selectedIndex == -1) { return; }
+		prefs.clearUserPref(listprefprefix + listbox.selectedItem.value);
+		listbox.removeItemAt(listbox.selectedIndex);
+		mtaUpdateList(listboxname, listprefname);
+	}
+	
+	function doAddList(listboxname, textboxname, listprefname, listprefprefix) {
+		var listbox = document.getElementById(listboxname);
+		var textbox = document.getElementById(textboxname);
+		var mta = textbox.value;
+
+		var re = new RegExp(',', 'g');
+		var mta = mta.replace(re, '');
+		
+		if (mta == "") { return; }
+		prefs.setCharPref(listprefprefix + mta, "trust");
+		listbox.appendItem(mta, mta);
+		mtaUpdateList(listboxname, listprefname);
+		textbox.value = "";
+	}
+	
+	function doRemoveMta() {
+		doRemoveList("spf_mta", "spf.internal_mtas", "spf.host.");
+	}
+	
+	function doAddMta() {
+		doAddList("spf_mta", "spf_mta_add", "spf.internal_mtas", "spf.host.");
+	}
+	
+	function doRemoveForwarder() {
+		doRemoveList("spf_forwarder", "spf.forwarding_mtas", "spf.forwarder.");
+	}
+	
+	function doAddForwarder() {
+		doAddList("spf_forwarder", "spf_forwarder_add", "spf.forwarding_mtas", "spf.forwarder.");
+	}
+  </script>
+
+  <vbox flex="1" style="width: 500px">
+	  <hbox>
+  	  <checkbox label="Check Every Email" id="spf_checkonload"/>
+	  </hbox>
+  
+  	  <separator class="groove-thin"/>
+	  
+	  <hbox>
+  
+		  <vbox style="width: 260px">
+		  <label value="Internal Network Servers:" class="header"/>
+		  <hbox>
+			<listbox id="spf_mta" rows="3" style="width: 200px"/>
+			<button label="Remove" oncommand="doRemoveMta()"/>
+		  </hbox>
+		  <hbox>
+			<textbox id="spf_mta_add" style="width: 200px"/>
+			<button label="Add" oncommand="doAddMta()"/>
+		  </hbox>
+		  <description>These are <b>IP addresses</b> of servers in your internal network.
+		  (You may use wildcards, e.g. 123.456.789.*)</description>	  
+		  </vbox>
+		  
+		  <vbox style="width: 260px">
+		  <label value="Forwarding Hosts:" class="header"/>
+		  <hbox>
+			<listbox id="spf_forwarder" rows="3" style="width: 200px"/>
+			<button label="Remove" oncommand="doRemoveForwarder()"/>
+		  </hbox>
+		  <hbox>
+			<textbox id="spf_forwarder_add" style="width: 200px"/>
+			<button label="Add" oncommand="doAddForwarder()"/>
+		  </hbox>
+		  <description>These are <b>hostnames</b> of servers that forward mail to you, including mail list servers and mail forwarders.</description>	  
+		  </vbox>
+	  </hbox>
+		  
+
+	  <separator class="groove-thin"/>
+	  
+	  <vbox>
+		<label value="Query Server:" class="header"/>
+		<textbox id="spf_queryserver" style="width: 250px"/>
+	  </vbox>
+	  <description>This is the address of the server which will be contacted to perform SPF queries each time an email is loaded. When left blank, this setting will be set to the default query server the next time a mail message is loaded.</description>	  
+	  
+	 </vbox>
+
+</dialog>

@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
+<window
+    title="SPF Extension: Internal Network Server"
+	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+	>
+	
+	<script type="application/x-javascript" src="chrome://spf/content/misc.js" />
+	
+	<vbox flex="1" style="width: 350px">
+	
+	<label class="header">Recognizing Internal Network Servers</label>
+	
+	<description>The email you were viewing was rejected because the apparent sender of the email
+	was not authorized to use the domain name found in the From: header.  But the apparent
+	sender might be wrong.  SPF might be thinking that the above mail server was the sender
+	of the email, when in fact that server was the recipient of the email at your
+	local institution.</description>
+
+	<description>If the server <label id="servername"/> is a part of your local institution,
+	please follow the instructions below.</description>
+
+	<label class="header">How do I correct the problem?</label>
+
+	<description>You can tell the Thunderbird SPF Extension which servers are a part of your
+	institution's email system to avoid this problem.  Click <i>Internal Network Server</i>
+	to remember that this server is in your internal network.  Otherwise, click <i>Nevermind</i>.</description>
+	
+	<description>You can edit the list of internal network servers by going to Tools | Extensions and opening
+	the options for the SPF Extension.</description>
+	
+	<hbox>
+
+	<button label="Internal Network Server" oncommand="doAddList(window.opener.mta, 'spf.internal_mtas', 'spf.host.'); window.close()" id="btnAdd"/>
+	
+	<button label="Nevermind" oncommand="window.close()"/>
+	
+	</hbox>
+	
+	</vbox>
+	
+	<script>
+		document.getElementById('servername').value = window.opener.reversedns + " (" + window.opener.mta + ")";
+	</script>
+
+</window>

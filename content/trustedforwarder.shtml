@@ -1,0 +1,47 @@
+<html>
+
+<head>
+	<title>Thunderbird SPF Extension: Trusting Fowarders</title>
+</head>
+
+<body>
+	<p>(This page is under development.)</p>
+	
+	<P>If the server <!--#echo var="QUERY_STRING_UNESCAPED" --> is
+	a mail forwarding service or mail list that you trust,
+	please follow these instructions.</P>
+	
+	<h3>Why was there a problem?</h3>
+
+	<p>The email you were viewing was rejected because the apparent sender of the email
+	was not authorized to use the domain name found in the From: header.  In other words,
+	when a mail list forwards on a message preserving the From: address, there is no
+	way to know whether it has "forged" the address or has really passed on a message
+	from the address listed in the From: header.</p>
+
+	<P>If you've arrived at this page, the email you were viewing was verified as coming
+	from the domain above by looking at the email's hidden envelope information.  If this
+	is a forwarding service or mail list that you trust, continue reading.</P>
+	
+	<h3>How do I correct the problem?</h3>
+
+	<P>You can tell the Thunderbird SPF Extension which domains are forwarding services
+	or mail lists that you trust to avoid this problem.  All that you are trusting is that
+	the mail servers in that domain are passing on emails that they have received, and that
+	those servers themselves are not forging any information in the emails.  You do not
+	have to trust that the mail servers have screened the emails themselves.</P>
+	
+	<P>You will need to edit your Thunderbird user preferences file.  On Linux, this file
+	is in ~/.thunderbird/[profile name]/[random-string]/user.js.  I don't know where this file is
+	on Windows.</P>
+	
+	<P>Add the following line to the file.</P>
+	
+	<P><TT>user_pref("spf.forwarder.<!--#echo var="QUERY_STRING_UNESCAPED" -->", "trust");</TT></P>
+	
+	<P>Then restart Thunderbird.</P>
+	
+	<P>Note that only domain names may be used in spf.forwarder records	in the preferences file.</P>
+</body>
+
+</html>
