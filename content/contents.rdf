@@ -7,11 +7,11 @@
 </RDF:Seq> 
 
 <RDF:Description about="urn:mozilla:package:spf" 
-	  chrome:displayName="Sender Policy Framework Extension" 
+	  chrome:displayName="Sender Verification Extension" 
 	  chrome:author="Joshua Tauberer (tauberer@for.net)" 
 	  chrome:name="spf"
 	  chrome:extension="true"
-	  chrome:description="Checks emails against SPF records.  Protects you from phishing."> 
+	  chrome:description="Checks emails against SPF and DomainKeys.  Protects you from phishing."> 
 </RDF:Description>
 
 <RDF:Seq about="urn:mozilla:overlays">

@@ -81,7 +81,7 @@ function spfLoadSettings() {
 		checkonload = prefs.getCharPref("spf.checkonload");
 	}
 	
-	usedk = "";
+	usedk = "yes";
 	if (prefs.getPrefType("spf.domainkeys") == prefs.PREF_STRING) {
 		usedk = prefs.getCharPref("spf.domainkeys");
 	}
@@ -144,6 +144,7 @@ function spfGo(manual) {
 	}
 	
 	// Load the message service, and scan the message headers.
+	// This bit is roughly based on a part of Enigmail.
 
 	statusText.value = "Scanning message headers...";	
 	
@@ -348,7 +349,7 @@ function spfGo(manual) {
 	}
 
 	// Interpret the DK header
-	if (FromHdr != null && DKHeader != null && DKHeader != "" && usedk == "yes") {
+	if (FromHdr != null && DKHeader != null && DKHeader != "" && usedk != "no") {
 		mode = 0;
 		h = "";
 		var v;
@@ -557,17 +558,16 @@ function spfGoFinish() {
 	else
 		statusLink.value = QueryReturn.comment;
 
-	// When the sender is not verified...
-	if (QueryReturn.result != "pass" && QueryReturn.method != "surbl" && QueryReturn.result != "none") {
-		// If the forwarder is trusted, don't show the internal network message. 
-		if (!QueryReturn.trustedForwarder) {
-			// If it's not possibly a forwarder, then show the internal network server link.
-			statusTrust.style.display = null;
-			statusTrust.childNodes[0].nodeValue = "Is " + HeloName + " in your network?";
-			statusTrust.linktype = "mta";
-			statusTrust.mta = IPAddr;
-			statusTrust.reversedns = QueryReturn.reversedns;
-		}
+	// When the sender is not verified and the forwarder is not trusted, then
+	// show the internal network server link.
+	if (QueryReturn.result != "pass" && QueryReturn.method != "surbl" && QueryReturn.result != "none"
+		&& !QueryReturn.trustedForwarder
+		&& QueryReturn.reversedns != "") {
+		statusTrust.style.display = null;
+		statusTrust.childNodes[0].nodeValue = "Is " + QueryReturn.reversedns + " in your network?";
+		statusTrust.linktype = "mta";
+		statusTrust.mta = IPAddr;
+		statusTrust.reversedns = QueryReturn.reversedns;
 	}
 	
 	// Show the user the result of the query.
@@ -680,6 +680,13 @@ function SPFSendQuery2(func) {
 		if (e.nodeName == "reversedns") { reversedns = e.textContent; }
 		if (e.nodeName == "domain") { domain = e.textContent; }
 		if (e.nodeName == "method") { method = e.textContent; }
+		
+		if (e.nodeName == "change-server") {
+			if (confirm("Your current query server requests that you begin using the query server at <" + e.textContent + ">.  The request is most likely to ease the load placed on the current server.  Is this switch okay?")) {
+				prefs.setCharPref("spf.queryserver", e.textContent);
+			}
+		}
+		
 		e = e.nextSibling;
 	}
 

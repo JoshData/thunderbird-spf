@@ -25,9 +25,9 @@
 			spf_checkonload.checked = false;
 		
 	    var spf_usedk = document.getElementById("spf_usedk");
-		spf_usedk.checked = false;
-		if (isPref("spf.domainkeys", "yes"))
-			spf_usedk.checked = true;
+		spf_usedk.checked = true;
+		if (isPref("spf.domainkeys", "no"))
+			spf_usedk.checked = false;
 
 		initList("spf_mta", "spf.internal_mtas")
 		initList("spf_forwarder", "spf.forwarding_mtas")
