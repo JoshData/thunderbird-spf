@@ -29,9 +29,17 @@
 	
 	<!-- TODO: shortcut key -->
 	<menupopup id="taskPopup">
+		<command id="sp_GoMenu_Command" label="Verify Sender (SPF/DK)" oncommand="spfGo(true);" />
+	
+		<keyset>
+			<key id="spf_GoMenu_Key" key="V" modifiers="shift control" command="sp_GoMenu_Command"/>
+		</keyset>
+	
 	   <menuseparator id="spf_GoMenuSeparator"/>
 		<menuitem id="spf_GoMenu"
-			 label="Verify Sender (SPF)"
-			 oncommand="spfGo(true);" />
+			 accesskey="V"
+			 key="spf_GoMenu_Key"
+			 command="sp_GoMenu_Command"
+			 />
 	</menupopup>
 </overlay>
