@@ -239,7 +239,10 @@ function str2binb(str)
 {
   var bin = Array();
   var mask = (1 << chrsz) - 1;
-  for(var i = 0; i < str.length * chrsz; i += chrsz)
+  var i;
+  for(i = 0; i < ((str.length * chrsz - 1) >> 5) + 1; i++)
+	  bin[i] = 0;
+  for(i = 0; i < str.length * chrsz; i += chrsz)
     bin[i>>5] |= (str.charCodeAt(i / chrsz) & mask) << (24 - i%32);
   return bin;
 }

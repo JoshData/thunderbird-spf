@@ -63,6 +63,8 @@ var spfBox;
 var statusText;
 var statusLink;
 var statusTrust;
+var goMenu;
+var goMenuSep;
 
 // Whenever the messagepane loads, run a SPF check.
 var messagepane = document.getElementById("messagepane");
@@ -195,6 +197,10 @@ function spfGo(manual) {
 	
 	var DKHeader = null;
 	var DKHeaderPostPosition = null;
+	
+	var c;
+	var cs;
+	var csi;
 
 	// For some reason, when reading an email with attachments, except for the first email read,
 	// the next line freezes thunderbird.  Only with IMAP accounts I think.
@@ -203,9 +209,9 @@ function spfGo(manual) {
 	// Read the headers character-by-character because I don't know a better way of doing this.
 	var endofheaders = false;
 	while (scriptableinput.available()) {
-		var cs = scriptableinput.read(512)
-		for (var csi = 0; csi < cs.length; csi++) {
-		var c = cs.charAt(csi);
+		cs = scriptableinput.read(512)
+		for (csi = 0; csi < cs.length; csi++) {
+		c = cs.charAt(csi);
 		bytesread++;
 		
 		if (c == "\r") { continue; }
@@ -373,8 +379,8 @@ function spfGo(manual) {
 		var DK_QMETHOD = null;
 		var DK_SELECTOR = null;
 		
-		for (var csi = 0; csi < DKHeader.length; csi++) {
-			var c = DKHeader.charAt(csi);
+		for (csi = 0; csi < DKHeader.length; csi++) {
+			c = DKHeader.charAt(csi);
 			if (c == " " || c == "\t") continue;
 			if (mode == 0) {
 				if (c == "=") {
@@ -406,9 +412,9 @@ function spfGo(manual) {
 		// Check that required tags are present, and if so compute the email hash
 		if (DK_SIG != null && (DK_CAN == "simple" || DK_CAN == "nofws") && DK_DOMAIN != null && DK_QMETHOD != null && DK_SELECTOR != null && (endsWith(FromHdr, "@" + DK_DOMAIN) || endsWith(FromHdr, "." + DK_DOMAIN))) {
 			// Load up a new scriptable input stream
-			var consumer = Components.classes["@mozilla.org/network/sync-stream-listener;1"]
+			consumer = Components.classes["@mozilla.org/network/sync-stream-listener;1"]
 				.createInstance().QueryInterface(Components.interfaces.nsIInputStream);
-			var input = Components.classes["@mozilla.org/scriptableinputstream;1"]
+			input = Components.classes["@mozilla.org/scriptableinputstream;1"]
 				.createInstance().QueryInterface(Components.interfaces.nsIScriptableInputStream);
 			input.init(consumer);
 			msgService.streamMessage(uri, consumer, msgWindow, null, false, null)
@@ -420,22 +426,22 @@ function spfGo(manual) {
 			mode = 0;
 			var line = "";
 			var hashdata = "";
-			var hlast = null;
-			var hcont = false;
 			var trailingLines = "";
+			hcont = false;
+			hlast = null;
 			
 			sha1_incremental_init();
 			
 			while (input.available()) {
-				var cs = input.read(512);
+				cs = input.read(512);
 				
 				// Ensure the email ends with a new line so the last line
 				// is proceesed.
 				if (!input.available() && !endsWith(cs, "\n"))
 					cs += "\n";
 				
-				for (var csi = 0; csi < cs.length; csi++) {
-					var c = cs.charAt(csi);
+				for (csi = 0; csi < cs.length; csi++) {
+					c = cs.charAt(csi);
 					
 					if (mode == 0 && line == "" && (c == "\t" || c == " "))
 						hcont = true;
