@@ -122,7 +122,7 @@
   <vbox flex="1" style="width: 500px">
 	  <vbox>
   	  <checkbox label="Check Every Email" id="spf_checkonload"/>
-	  <checkbox label="Use Yahoo! DomainKeys" id="spf_usedk"/>
+	  <checkbox label="Check DomainKeys Signatures" id="spf_usedk"/>
 	  </vbox>
   
   	  <separator class="groove-thin"/>
