@@ -66,6 +66,10 @@ var statusTrust;
 var goMenu;
 var goMenuSep;
 
+var QueryCache = Array(0);
+var QueryCacheNext = 0;
+var QueryCacheMax = 100;
+
 // Whenever the messagepane loads, run a SPF check.
 var messagepane = document.getElementById("messagepane");
 messagepane.addEventListener("load", spfGoEvent, true);
@@ -639,8 +643,6 @@ function spfGoFinish() {
 }
 
 function SPFSendQuery(helo, ip, email_from, email_envelope, dkheader, dkhash, func, status) {
-	statusText.value = "Contacting verification server...";
-	
 	// Prepare the URL of the query.
 	
 	var url = serverurl;
@@ -653,25 +655,43 @@ function SPFSendQuery(helo, ip, email_from, email_envelope, dkheader, dkhash, fu
 	if (email_envelope != null)
 		url += "&envfrom=" + email_envelope;
 	
+	var url_nodk = url;
+	
 	if (dkheader != null && dkhash != null) {
 		url += "&domainkeys_header=" + dkheader;
 		url += "&domainkeys_hash=" + dkhash;
 	}
 	
+	// If the result is cached, use that without going to the server.
+	for (var i = 0; i < QueryCache.length; i++) {
+		if (QueryCache[i] == null) continue;
+		if (QueryCache[i].querystring == url
+			|| (QueryCache[i].method == 'spf' && QueryCache[i].querystring_nodk == url_nodk)) {
+			QueryReturn = QueryCache[i];
+			window.setTimeout(func, 1);
+			return;
+		}
+	}
+	
+	// Build the query object
+	var queryObj = new QueryRet(url, url_nodk);
+	
 	// Query the server.
 
+	statusText.value = "Contacting verification server...";
+	
 	xmlhttp.open("GET", url, true);
 	xmlhttp.onerror=function() {
 		statusText.value = "Error verifying sender: " + xmlhttp.statusText;
 		statusText.style.color = "blue";
 	};
 	xmlhttp.onload = function() {
-		SPFSendQuery2(func);
+		SPFSendQuery2(func, queryObj);
 	};
 	xmlhttp.send(null);
 }
 
-function SPFSendQuery2(func) {	
+function SPFSendQuery2(func, queryObj) {	
 	// Don't know how better to get the information out of the XML...
 	
 	if (xmlhttp.responseXML == null) {
@@ -690,19 +710,13 @@ function SPFSendQuery2(func) {
 		return;
 	}
 	
-	var result;
-	var comment;
-	var reversedns;
-	var domain;
-	var method;
-	
 	e = e.firstChild;
 	while (e) {
-		if (e.nodeName == "result") { result = e.textContent; }
-		if (e.nodeName == "comment") { comment = e.textContent; }
-		if (e.nodeName == "reversedns") { reversedns = e.textContent; }
-		if (e.nodeName == "domain") { domain = e.textContent; }
-		if (e.nodeName == "method") { method = e.textContent; }
+		if (e.nodeName == "result") { queryObj.result = e.textContent; }
+		if (e.nodeName == "comment") { queryObj.comment = e.textContent; }
+		if (e.nodeName == "reversedns") { queryObj.reversedns = e.textContent; }
+		if (e.nodeName == "domain") { queryObj.domain = e.textContent; }
+		if (e.nodeName == "method") { queryObj.method = e.textContent; }
 		
 		if (e.nodeName == "change-server") {
 			if (confirm("Your current query server requests that you begin using the query server at <" + e.textContent + ">.  The request is most likely to ease the load placed on the current server.  Is this switch okay?")) {
@@ -714,16 +728,19 @@ function SPFSendQuery2(func) {
 	}
 
 	// Return
-	QueryReturn = new QueryRet(result, comment, domain, reversedns, method);
+	QueryReturn = queryObj;
+	
+	// Cache the return value.
+	QueryCache[QueryCacheNext++] = queryObj;
+	if (QueryCacheNext == QueryCacheMax) QueryCacheNext = 0;
+	
+	// Call the callback
 	window.setTimeout(func, 1);
 }
 
-function QueryRet(result, comment, domain, reversedns, method) {
-	this.result = result;
-	this.comment = comment;
-	this.domain = domain;
-	this.reversedns = reversedns;
-	this.method = method;
+function QueryRet(querystring, querystring_nodk) {
+	this.querystring = querystring;
+	this.querystring_nodk = querystring_nodk;
 }
 
 function MyUrlListener() {
