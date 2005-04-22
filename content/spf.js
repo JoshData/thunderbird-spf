@@ -667,6 +667,12 @@ function SPFSendQuery(helo, ip, email_from, email_envelope, dkheader, dkhash, fu
 		if (QueryCache[i] == null) continue;
 		if (QueryCache[i].querystring == url
 			|| (QueryCache[i].method == 'spf' && QueryCache[i].querystring_nodk == url_nodk)) {
+				
+			// If this was an SPF result that doesn't indicate a pass, but there is a DK
+			// sigature on this email, then the sig might still pass the email, so don't
+			// use the cached result.
+			if (QueryCache[i].method == 'spf' && QueryCache[i].result != 'pass' && dkheader != null) continue;
+				
 			QueryReturn = QueryCache[i];
 			window.setTimeout(func, 1);
 			return;
