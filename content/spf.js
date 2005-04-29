@@ -510,10 +510,11 @@ function spfGo(manual) {
 					// continuation lines.  Also, ensure there is data left in hashdata
 					// after this so that it can be used at the very end to close
 					// the hash computation.
-					while (mode == 1 && hashdata.length > (64*4)) {
-						var hasharg = hashdata.substring(0, (64*4));
+					while (mode == 1 && hashdata.length > (64*12)) {
+						var hasharg = hashdata.substring(0, (64*12));
 						hashdata = hashdata.substring(hasharg.length, hashdata.length);
 						sha1_incremental_block(hasharg, false);
+						//alert(hasharg);
 					}
 					
 					// end of headers
@@ -524,10 +525,13 @@ function spfGo(manual) {
 				}
 			}
 
-			if (hashdata.length > 0)
+			if (hashdata.length > 0) {
 				sha1_incremental_block(hashdata, true);
+				//alert(hashdata);
+			}
 			
 			DKHash = sha1_incremental_end_base64();
+			//alert(DKHash);
 			
 			// Close the stream
 			input.close();
@@ -634,6 +638,7 @@ function spfGoFinish() {
 		case "phishing":
 			statusText.value = QueryReturn.comment;
 			statusText.style.color = "red";
+			statusLink.value = "This is reported by www.surbl.org.";
 			break;
 		default:
 			statusText.value = "Error: " + QueryReturn.comment;
@@ -661,6 +666,8 @@ function SPFSendQuery(helo, ip, email_from, email_envelope, dkheader, dkhash, fu
 		url += "&domainkeys_header=" + dkheader;
 		url += "&domainkeys_hash=" + dkhash;
 	}
+	
+	//throw url;
 	
 	// If the result is cached, use that without going to the server.
 	for (var i = 0; i < QueryCache.length; i++) {

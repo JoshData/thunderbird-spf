@@ -1,13 +1,12 @@
 MOZILLA THUNDERBIRD EXTENSION FOR
-SENDER POLICY FRAMEWORK QUERYING
+       SENDER VERIFICATION
 
 By Joshua Tauberer <tauberer@for.net>
-Copyright Joshua Tauberer 2004
+Copyright Joshua Tauberer 2004-2005
 
 http://taubz.for.net/code/spf
 
 Feel free to use these files however you want.
 
 To create the XPI installer for Thunderbird, run make!
-
 
