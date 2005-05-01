@@ -28,6 +28,11 @@
 		spf_usedk.checked = true;
 		if (isPref("spf.domainkeys", "no"))
 			spf_usedk.checked = false;
+			
+		var spf_warnunverified = document.getElementById("spf_warnunverified");
+		spf_warnunverified.checked = false;
+		if (isPref("spf.warnunverified", "yes"))
+			spf_warnunverified.checked = true;
 
 		initList("spf_mta", "spf.internal_mtas")
 		initList("spf_forwarder", "spf.forwarding_mtas")
@@ -66,6 +71,9 @@
 
 	    var spf_usedk = document.getElementById("spf_usedk");
 		prefs.setCharPref("spf.domainkeys", spf_usedk.checked ? "yes" : "no");
+		
+		var spf_warnunverified = document.getElementById("spf_warnunverified");
+		prefs.setCharPref("spf.warnunverified", spf_warnunverified.checked ? "yes" : "no");
 	}
 	
 	function mtaUpdateList(listboxname, prefname) {
@@ -123,6 +131,7 @@
 	  <vbox>
   	  <checkbox label="Check Every Email" id="spf_checkonload"/>
 	  <checkbox label="Check DomainKeys Signatures" id="spf_usedk"/>
+	  <checkbox label="Show Warnings for Unverified Emails" id="spf_warnunverified"/>
 	  </vbox>
   
   	  <separator class="groove-thin"/>

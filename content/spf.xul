@@ -7,14 +7,14 @@
 	<script type="application/x-javascript" src="chrome://spf/content/spf.js" />
 	
 	<vbox id="expandedHeaders">
-		<hbox class="headerBox" position="1" id="spfBox">
+		<hbox position="1" id="spfBox">
 			<vbox align="start">
 				<image class="collapsedHeaderViewButton" state="false"
 					onclick="spfLinkDiv = getElementById('spfLinkDiv'); if (spfLinkDiv.style.display) { spfLinkDiv.style.display = null; this.setAttribute('class', 'expandHeaderViewButton'); } else { spfLinkDiv.style.display = 'none'; this.setAttribute('class', 'collapsedHeaderViewButton'); }"/>
 			</vbox>
 			<hbox class="headerNameBox" align="start">
 				<label class="headerName" value=" Sender Verification:" flex="1"/>
-				<vbox pack="start" width="100%">
+				<vbox pack="start">
 					<description id="spfStatusText" value="Loading..."/>
 					
 					<vbox id="spfLinkDiv" style="display: none; cursor: pointer;">

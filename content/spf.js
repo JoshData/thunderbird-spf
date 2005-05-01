@@ -1,7 +1,7 @@
 /*
- * MOZILLA THUNDERBIRD EXTENSION FOR SENDER POLICY FRAMEWORK QUERYING
+ * MOZILLA THUNDERBIRD EXTENSION FOR SENDER VERIFICATION
  *
- * Copyright 2004 Joshua Tauberer <tauberer@for.net>
+ * Copyright 2004-2005 Joshua Tauberer <tauberer@for.net>
  *
  * Feel free to use and copy and modify this file however you like.
 *
@@ -13,7 +13,7 @@
 
 // CONSTANTS
 
-var useragent = "spf:0.5"; // The useragent field sent to the query server
+var useragent = "sve:0.6"; // The useragent field sent to the query server
 
 // REGULAR EXPRESSIONS
 
@@ -39,6 +39,7 @@ var prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(
 var serverurl = "";
 var checkonload = "";
 var usedk = "";
+var warnunverified;
 
 // GLOBAL VARIABLES
 // Yes it's a bad way to program, but it seems necessary in order
@@ -70,6 +71,8 @@ var QueryCache = Array(0);
 var QueryCacheNext = 0;
 var QueryCacheMax = 100;
 
+var lastCheckedEmail;
+
 // Whenever the messagepane loads, run a SPF check.
 var messagepane = document.getElementById("messagepane");
 messagepane.addEventListener("load", spfGoEvent, true);
@@ -96,6 +99,13 @@ function spfLoadSettings() {
 	if (prefs.getPrefType("spf.domainkeys") == prefs.PREF_STRING) {
 		usedk = prefs.getCharPref("spf.domainkeys");
 	}
+	
+	warnunverified = false;
+	if (prefs.getPrefType("spf.warnunverified") == prefs.PREF_STRING
+		&& prefs.getCharPref("spf.warnunverified") == "yes") {
+		warnunverified = true;
+	}
+	
 }
 
 function spfGoEvent() {
@@ -104,6 +114,11 @@ function spfGoEvent() {
 }
 
 function spfGo(manual) {
+	// Prevent two load events on the same email.
+	var uri = GetFirstSelectedMessage();
+	if (uri == lastCheckedEmail) return;
+	lastCheckedEmail = uri;
+
 	spfLoadSettings();
 	
 	// Get references to the XUL elements we use.
@@ -134,7 +149,6 @@ function spfGo(manual) {
     if (!statusText) return;
 	if (GetNumSelectedMessages() != 1) return;
 
-	var uri = GetFirstSelectedMessage();
 	if (!uri) return;
 	if (uri.indexOf("news-message://") == 0) return;
 
@@ -206,10 +220,6 @@ function spfGo(manual) {
 	var cs;
 	var csi;
 
-	// For some reason, when reading an email with attachments, except for the first email read,
-	// the next line freezes thunderbird.  Only with IMAP accounts I think.
-	scriptableinput.available();
-	
 	// Read the headers character-by-character because I don't know a better way of doing this.
 	var endofheaders = false;
 	while (scriptableinput.available()) {
@@ -222,7 +232,7 @@ function spfGo(manual) {
 		if ((c == " " || c == "\t") && h == "") { hcont = true; continue; }
 		
 		if (c != "\n") { h += c; continue; }
-			
+		
 		// end of headers
 		if (h == "") { endofheaders = true; break; }
 		
@@ -600,10 +610,10 @@ function spfGoFinish() {
 	switch (QueryReturn.result) {
 		case "pass":
 			if (endsWith(FromHdr, "@" + QueryReturn.domain)) {
-				statusText.value = "Sender Domain Verified";
+				statusText.value = "Sending Domain <" + QueryReturn.domain + "> Verified";
 				statusText.style.color = null;
 			} else {
-				statusText.value = "Sending Domain <" + QueryReturn.domain + "> Verified";
+				statusText.value = "Envelope Domain <" + QueryReturn.domain + "> Verified (From: Address Unverified)";
 				statusText.style.color = "red";
 
 				if (QueryReturn.promptToTrust) {
@@ -644,6 +654,10 @@ function spfGoFinish() {
 			statusText.value = "Error: " + QueryReturn.comment;
 			statusText.style.color = "red";
 			break;
+	}
+	
+	if (warnunverified && QueryReturn.result != "pass") {
+		alert("The sending domain of this email could not be verified.  It is advised that you do not reply to this email, download any attachments, or follow any links in the email.\n\nThis warning can be turned off by going to the Sender Verification Exception options window, which can be found in Tools -> Extensions.");
 	}
 }
 
