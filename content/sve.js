@@ -13,7 +13,7 @@
 
 // CONSTANTS
 
-var useragent = "sve:0.6"; // The useragent field sent to the query server
+var useragent = "sve:0.7"; // The useragent field sent to the query server
 
 // REGULAR EXPRESSIONS
 
@@ -75,6 +75,7 @@ var lastCheckedEmail;
 
 // Whenever the messagepane loads, run a SPF check.
 var messagepane = document.getElementById("messagepane");
+messagepane.addEventListener("load", sveRearrangeBoxes, true);
 messagepane.addEventListener("load", spfGoEvent, true);
 
 function spfLoadSettings() {
@@ -111,6 +112,24 @@ function spfLoadSettings() {
 function spfGoEvent() {
 	// The timeout prevents a hang when loading IMAP messages with attachments
 	window.setTimeout("spfGo(false);", 250);
+}
+
+var sveRearrangedBoxes = false;
+function sveRearrangeBoxes() {
+	// Mnenhy likes to replace the header box, so we need to insert a new
+	// vbox between the hbox that is expandedHeaderView and its parent,
+	// so we can put our box on top of the expandedHeaderView.
+	
+	if (sveRearrangedBoxes) return;
+	sveRearrangedBoxes = true;
+	
+	var spfBox = document.getElementById("spfBox");
+	var widget = document.getElementById("expandedHeaderView");
+	var curContainer = widget.parentNode;
+	var newContainer = document.createElement("vbox");
+	curContainer.insertBefore(newContainer, widget);
+	newContainer.appendChild(widget);
+	newContainer.insertBefore(spfBox, widget);
 }
 
 function spfGo(manual) {

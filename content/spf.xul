@@ -8,8 +8,8 @@
 	<script type="application/x-javascript" src="chrome://spf/content/spf.js" />
 	<script type="application/x-javascript" src="chrome://spf/content/sve.js" />
 	
-	<vbox id="expandedHeaders">
-		<hbox position="1" id="spfBox">
+	<hbox id="expandedHeaderView">
+		<hbox id="spfBox" style="display: none">
 			<vbox align="start">
 				<image class="collapsedHeaderViewButton" state="false"
 					onclick="spfLinkDiv = getElementById('spfLinkDiv'); if (spfLinkDiv.style.display) { spfLinkDiv.style.display = null; this.setAttribute('class', 'expandHeaderViewButton'); } else { spfLinkDiv.style.display = 'none'; this.setAttribute('class', 'collapsedHeaderViewButton'); }"/>
@@ -26,8 +26,7 @@
 				</vbox>
 			</hbox>
 		</hbox>
-		<spacer/>
-	</vbox>
+	</hbox>
 	
 	<menupopup id="taskPopup">
 		<command id="sp_GoMenu_Command" label="Verify Sender (SPF/DK)" oncommand="spfGo(true);" />
