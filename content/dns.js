@@ -1,11 +1,128 @@
-//queryDNS("xx.for.net", "A", function(data) { alert(data); } );
+var DNS_ROOT_NAME_SERVER = "J.ROOT-SERVERS.NET";
+var DNS_ALLOW_RECURSION = 1;
 
+var DNS_CACHE_SIZE = 1000;
+
+var dnsCache = Array(DNS_CACHE_SIZE);
+var dnsCachePos = 0;
+
+DNS_LoadPrefs();
+
+function DNS_LoadPrefs() {
+	var prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
+
+	if (prefs.getPrefType("dns.nameserver") == prefs.PREF_STRING) {
+		DNS_ROOT_NAME_SERVER = prefs.getCharPref("dns.nameserver");
+		DNS_ALLOW_RECURSION = 0; // When our own name server has no answer
+								  // for us, but gives us an authority server,
+								  // we don't want to follow it to see if it
+								  // has an answer.
+	}
+}
+
+var dns_test_domains = Array("for.net", "www.for.net", "yy.for.net", "www.gmail.net");
+var dns_test_domidx = 0;
+//DNS_Test();
+function DNS_Test() {
+	queryDNS(dns_test_domains[dns_test_domidx], "MX",
+		function(data) {
+			var str;
+			var i;
+			if (data == null) { str = "no data"; }
+			else {
+				for (i = 0; i < data.length; i++) {
+					if (data[i].host != null)
+						data[i] = "host=" + data[i].host + ";address=" + data[i].address;
+					
+					if (str != null) str += ", "; else str = "";
+					str += data[i];
+				}
+			}
+			
+			alert(dns_test_domains[dns_test_domidx] + " => " + str);
+			dns_test_domidx++;
+			DNS_Test();
+		} );
+}
+
+//queryDNS("www.for.net", "A", function(data) { alert(data); } );
+//queryDNS("yy.for.net", "A", function(data) { alert(data); } );
+//queryDNS("www.gmail.com", "A", function(data) { alert(data); } );
+
+// queryDNS: This is the main entry point for external callers.
 function queryDNS(host, recordtype, callback) {
-	queryDNSRecursive("J.ROOT-SERVERS.NET", host, recordtype, callback, 0);
+	var server = DNS_ROOT_NAME_SERVER;
+	var authlen = 0;
+	
+	// Check if an authority exists pertaining to this host.
+	for (var c = 0; c < dnsCache.length; c++) {
+		if (dnsCache[c] == null) break;
+		if (dnsCache[c].domain == host) { server = dnsCache[c].authority; break; }
+		if (endsWith(host, "." + dnsCache[c].domain) && dnsCache[c].domain.length > authlen) {
+			server = dnsCache[c].authority;
+			authlen = dnsCache[c].domain.length;
+		}
+	}
+	
+	queryDNSRecursive(server, host, recordtype, callback, 0);
+}
+
+function reverseDNS(ip, callback) {
+	// Get a list of reverse-DNS hostnames,
+	// and then make sure that each hostname
+	// resolves to the original IP.
+	
+	queryDNS(DNS_ReverseIPHostname(ip), "PTR",
+		function(hostnames) {
+			// No reverse DNS info available.
+			if (hostnames == null) { callback(null); return; }
+			
+			var ret = Array(0);
+			var retctr = 0;
+			var resolvectr = 0;
+			
+			var i;
+			
+			// Check that each one resolves forward.
+			for (i = 0; i < hostnames.length; i++) {
+				var curhostname = hostnames[i];
+				
+				queryDNS(hostnames[i], "A",
+				function(arecs) {
+					var j;
+					var matched = false;
+					for (j = 0; j < arecs.length; j++) {
+						if (arecs[j] == ip) { matched = true; break; }
+					}
+					
+					if (matched)
+						ret[retctr++] = curhostname;
+					
+					if (++resolvectr == hostnames.length) {
+						if (retctr == 0)
+							callback(null);
+						else
+							callback(ret);
+					}
+				});
+			}
+		});
+}
+
+function DNS_ReverseIPHostname(ip) {
+	var q = ip.split(".");  // The "1*" forces the first term to be numeric
+	return q[3] + "." + q[2] + "." + q[1] + "." + q[0] + ".in-addr.arpa";
+}
+
+
+function dnsCacheItem(domain, authority) {
+	this.domain = domain;
+	this.authority = authority;
 }
 
 function queryDNSRecursive(server, host, recordtype, callback, hops) {
 	if (hops == 10) {
+		DNS_Debug("DNS: Maximum number of recursive steps taken in resolving " + host);
 		callback(null);
 		return;
 	}
@@ -14,17 +131,27 @@ function queryDNSRecursive(server, host, recordtype, callback, hops) {
 	queryDNSDirect(server, host, recordtype,
 		// Got the answer
 		function(data) {
+			DNS_Debug("DNS: Resolved " + host + " " + recordtype + ": " + data);
 			callback(data);
 		},
 		
 		// Authority Server
-		function(data) {
-			queryDNSRecursive(data, host, recordtype, callback, hops+1);
+		function(domain, authority) {
+			//DNS_Debug("DNS: Got authority " + authority + " for domain " + domain + " while querying " + server + " for " + host + " " + recordtype);
+			
+			// Cache this authority record.
+			dnsCache[dnsCachePos] = new dnsCacheItem(domain, authority);
+			dnsCachePos = (++dnsCachePos) % dnsCache.length;
+			
+			// Recurse on the authority.
+			queryDNSRecursive(authority, host, recordtype, callback, hops+1);
 		}
 		);
 }
 
 function queryDNSDirect(server, host, recordtype, callback, authorityCallback) {
+	DNS_Debug("DNS: Resolving " + host + " " + recordtype + " by querying " + server);
+		
 	var query =
 		// HEADER
 		  "00" // ID
@@ -64,22 +191,32 @@ function queryDNSDirect(server, host, recordtype, callback, authorityCallback) {
 		readcount : 0,
 		responseHeader : "",
 		responseBody : "",
+		done : false,
+		finished : function(data) {
+			if (!this.done)
+				callback(null);
+		},
 		process : function(data){
+			if (this.done) return false;
+			
 			this.readcount += data.length;
 			
-			while (this.responseHeader.length < 14) {
+			while (this.responseHeader.length < 14 && data.length > 0) {
 				this.responseHeader += data.charAt(0);
 				data = data.substr(1);
 			}
 			if (this.responseHeader.length == 14) {
 				this.msgsize = DNS_strToWord(this.responseHeader.substr(0, 2));
 				this.responseBody += data;
-			}
-			
-			if (this.readcount >= this.msgsize+2) {
-				this.responseHeader = this.responseHeader.substr(2); // chop the length field
-				DNS_getRDData(this.responseHeader + this.responseBody, callback, authorityCallback, server);
-				return false;
+
+				//DNS_Debug("DNS: Received Reply: " + (this.readcount-2) + " of " + this.msgsize + " bytes");
+
+				if (this.readcount >= this.msgsize+2) {
+					this.responseHeader = this.responseHeader.substr(2); // chop the length field
+					this.done = true;
+					DNS_getRDData(this.responseHeader + this.responseBody, callback, authorityCallback, server);
+					return false;
+				}
 			}
 			return true;
 		}
@@ -93,7 +230,8 @@ function queryDNSDirect(server, host, recordtype, callback, authorityCallback) {
 
 function DNS_readDomain(ctx) {
 	var domainname = "";
-	while (true) {
+	var ctr = 20;
+	while (ctr-- > 0) {
 		var l = ctx.str.charCodeAt(ctx.idx++);
 		if (l == 0) break;
 		
@@ -113,41 +251,105 @@ function DNS_readDomain(ctx) {
 	return domainname;
 }
 
+function DNS_readRec(ctx) {
+	var rec = new Object();
+	var ctr;
+	var txtlen;
+	
+	rec.dom = DNS_readDomain(ctx);
+	rec.type = DNS_strToWord(ctx.str.substr(ctx.idx, 2)); ctx.idx += 2;
+	rec.cls = DNS_strToWord(ctx.str.substr(ctx.idx, 2)); ctx.idx += 2;
+	rec.ttl = DNS_strToWord(ctx.str.substr(ctx.idx, 2)); ctx.idx += 4; // 32bit
+	rec.rdlen = DNS_strToWord(ctx.str.substr(ctx.idx, 2)); ctx.idx += 2;
+	
+	var ctxnextidx = ctx.idx + rec.rdlen;
+	
+	if (rec.type == 16) {
+		// TXT
+		rec.rddata = "";
+		ctr = 10;
+		while (rec.rdlen > 0 && ctr-- > 0) {
+			txtlen = DNS_strToOctet(ctx.str.substr(ctx.idx,1)); ctx.idx++; rec.rdlen--;
+			rec.rddata += ctx.str.substr(ctx.idx, txtlen); ctx.idx += txtlen; rec.rdlen -= txtlen;
+		}
+	} else if (rec.type == 1) {
+		// A: Return as a dotted-quad
+		rec.rddata = ctx.str.substr(ctx.idx, rec.rdlen);
+		rec.rddata = rec.rddata.charCodeAt(0) + "." + rec.rddata.charCodeAt(1) + "." + rec.rddata.charCodeAt(2) + "." + rec.rddata.charCodeAt(3);
+	} else if (rec.type == 15) {
+		// MX
+		rec.rddata = new Object();
+		rec.rddata.preference = DNS_strToWord(ctx.str.substr(ctx.idx,2)); ctx.idx += 2;
+		rec.rddata.host = DNS_readDomain(ctx);
+	} else {
+		// NS, PTR
+		rec.rddata = DNS_readDomain(ctx);
+	}
+	
+	ctx.idx = ctxnextidx;
+	
+	return rec;
+}
+
 function DNS_getRDData(str, callback, authorityCallback, server) {
 	var qcount = DNS_strToWord(str.substr(4, 2));
 	var ancount = DNS_strToWord(str.substr(6, 2));
 	var aucount = DNS_strToWord(str.substr(8, 2));
+	var adcount = DNS_strToWord(str.substr(10, 2));
 	
 	var ctx = { str : str, idx : 12 };
 	
 	var i;
+	var j;
+	var dom;
+	var cls;
+	var ttl;
+	var rec;
+	
+	// sanity checks
+	if (qcount > 1) qcount = 1;
+	if (ancount > 16) ancount = 16;
+	if (aucount > 16) aucount = 16;
+	
 	for (i = 0; i < qcount; i++) {
-		var dom = DNS_readDomain(ctx);
-		var type = DNS_strToWord(str.substr(ctx.idx, 2)); ctx.idx += 2;
-		var cls = DNS_strToWord(str.substr(ctx.idx, 2)); ctx.idx += 2;
+		dom = DNS_readDomain(ctx);
+		type = DNS_strToWord(str.substr(ctx.idx, 2)); ctx.idx += 2;
+		cls = DNS_strToWord(str.substr(ctx.idx, 2)); ctx.idx += 2;
 	}
 	
+	var results = Array(ancount);
 	for (i = 0; i < ancount; i++) {
-		var dom = DNS_readDomain(ctx);
-		var type = DNS_strToWord(str.substr(ctx.idx, 2)); ctx.idx += 2;
-		var cls = DNS_strToWord(str.substr(ctx.idx, 2)); ctx.idx += 2;
-		var ttl = DNS_strToWord(str.substr(ctx.idx, 2)); ctx.idx += 4; // 32bit
-		var rdlen = DNS_strToWord(str.substr(ctx.idx, 2)); ctx.idx += 2;
-		var rddata = str.substr(ctx.idx+1, rdlen-1);
-		callback(rddata);
-		return;
+		rec = DNS_readRec(ctx);
+		results[i] = rec.rddata;		
+		DNS_Debug("DNS: Received Result: Result Item: " + rec.rddata);
 	}
 
 	for (i = 0; i < aucount; i++) {
-		var dom = DNS_readDomain(ctx);
-		var type = DNS_strToWord(str.substr(ctx.idx, 2)); ctx.idx += 2;
-		var cls = DNS_strToWord(str.substr(ctx.idx, 2)); ctx.idx += 2;
-		var ttl = DNS_strToWord(str.substr(ctx.idx, 2)); ctx.idx += 4; // 32bit
-		var rdlen = DNS_strToWord(str.substr(ctx.idx, 2)); ctx.idx += 2;
-		var authdom = DNS_readDomain(ctx);
-		if (authdom == server) { callback(null); return; } // no info available
-		authorityCallback(authdom);
-		return;
+		rec = DNS_readRec(ctx);
+		if (results.length == 0 && DNS_ALLOW_RECURSION && rec.rddata != server) {
+			DNS_Debug("DNS: Received Result: Authority: " + rec.rddata);
+			authorityCallback(rec.dom, rec.rddata);
+			return;
+		}
+	}
+	
+	for (i = 0; i < adcount; i++) {
+		rec = DNS_readRec(ctx);
+		DNS_Debug("DNS: Received Result: Additional: " + " (type=" + rec.type + ")" + rec.rddata);
+		if (rec.type == 1) {
+			for (j = 0; j < results.length; j++) {
+				if (results[j].host == rec.dom) {
+					if (results[j].address == null) results[j].address = Array(0);
+					results[j].address[results[j].address.length] = rec.rddata;
+				}
+			}
+		}
+	}
+
+	if (results.length > 0) {
+		callback(results);
+	} else {
+		callback(null);
 	}
 }
 
@@ -175,6 +377,7 @@ function DNS_readAllFromSocket(host,port,outputData,listener)
     var transportService =
       Components.classes["@mozilla.org/network/socket-transport-service;1"]
         .getService(Components.interfaces.nsISocketTransportService);
+		
     var transport = transportService.createTransport(null,0,host,port,null);
 
     var outstream = transport.openOutputStream(0,0,0);
@@ -194,8 +397,10 @@ function DNS_readAllFromSocket(host,port,outputData,listener)
 			if (listener.finished != null) {
 				listener.finished(this.data);
 			}
+			//DNS_Debug("DNS: Connection closed (" + host + ")");
 		},
 		onDataAvailable: function(request, context, inputStream, offset, count){
+			//DNS_Debug("DNS: Got data (" + host + ")");
 			for (var i = 0; i < count; i++) {
 			  this.data += String.fromCharCode(instream.read8());
 			}
@@ -218,5 +423,17 @@ function DNS_readAllFromSocket(host,port,outputData,listener)
     return ex;
   }
   return null;
+}
+
+function DNS_Debug(message) {
+	if (false) {
+		var consoleService = Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService);
+		consoleService.logStringMessage(message);
+	}
+}
+
+function DNS_StartsWith(a, b) {
+	if (b.length > a.length) return false;
+	return a.substring(0, b.length) == b;
 }
 

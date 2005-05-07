@@ -345,6 +345,9 @@ function spfGo(manual) {
 	scriptableinput.close();
 	consumer_inputstream.close();
 	
+	if (SVE_GetDomain(FromHdr) == null) FromHdr = null;
+	if (EnvFrom != null && SVE_GetDomain(EnvFrom) == null) EnvFrom = null;
+	
 	// What if there is no From: header
 	if (!FromHdr) {
 		statusText.value = "Cannot determine sender address from mail message.";
@@ -596,13 +599,16 @@ function spfGoFinish() {
 	// When the sender is not verified and the forwarder is not trusted, then
 	// show the internal network server link.
 	if (QueryReturn.result != "pass" && QueryReturn.method != "surbl" && QueryReturn.result != "none"
-		&& !QueryReturn.trustedForwarder
-		&& QueryReturn.reversedns != "") {
-		statusTrust.style.display = null;
-		statusTrust.childNodes[0].nodeValue = "Is " + QueryReturn.reversedns + " in your network?";
-		statusTrust.linktype = "mta";
-		statusTrust.mta = IPAddr;
-		statusTrust.reversedns = QueryReturn.reversedns;
+		&& !QueryReturn.trustedForwarder) {
+			
+		reverseDNS(IPAddr, function(hostnames) {
+			if (hostnames == null || hostnames.length == 0) return;
+			statusTrust.style.display = null;
+			statusTrust.childNodes[0].nodeValue = "Is " + hostnames[0] + " in your network?";
+			statusTrust.linktype = "mta";
+			statusTrust.mta = IPAddr;
+			statusTrust.reversedns = hostnames[0];
+		});
 	}
 	
 	// Show the user the result of the query.
@@ -661,7 +667,56 @@ function spfGoFinish() {
 	}
 }
 
+function SVE_QuerySPF(ip, email_from, email_envelope, func) {
+	// Query the email from: first.  If that doesn't pass,
+	// then query the email envelope.  If that also doesn't
+	// pass, then go with the result of the from: query.
+	
+	statusText.value = "Performing SPF verification...";
+	
+	SPF(ip, SVE_GetDomain(email_from),
+		function(result) {
+			if (result.status == "+" || email_envelope == null)
+				SVE_QuerySPF2(result.status, result.message, result.isguess, SVE_GetDomain(email_from), ip, func);
+			else
+				SPF(ip, SVE_GetDomain(email_envelope),
+					function(result2) {
+						if (result2.status == "+")
+							SVE_QuerySPF2(result2.status, result2.message, result2.isguess, SVE_GetDomain(email_envelope), ip, func);
+						else
+							SVE_QuerySPF2(result.status, result.message, result.isguess, SVE_GetDomain(email_from), ip, func);
+					});
+		});
+}
+
+function SVE_QuerySPF2(result, message, isguess, domain, ip, func) {
+	if (result == "+") result = "pass";
+	else if (result == "-") result = "fail";
+	else if (result == "~") result = "fail";
+	else if (result == "?") result = "unknown";
+	else if (result == "0") result = "none";
+	else result = "error";
+	
+	QueryReturn = new Object();
+	QueryReturn.result = result;
+	QueryReturn.comment = message;
+	QueryReturn.domain = domain;
+	QueryReturn.method = "spf";
+	setTimeout(func, 1);
+}
+
+function SVE_GetDomain(emailaddress) {
+	var at = emailaddress.indexOf("@");
+	if (at == -1) return null;
+	return emailaddress.substr(at+1);
+}
+
 function SPFSendQuery(helo, ip, email_from, email_envelope, dkheader, dkhash, func, status) {
+	if (dkheader == null || dkhash == null) {
+		SVE_QuerySPF(ip, email_from, email_envelope, func);
+		return;
+	}
+	
 	// Prepare the URL of the query.
 	
 	var url = serverurl;
@@ -741,7 +796,6 @@ function SPFSendQuery2(func, queryObj) {
 	while (e) {
 		if (e.nodeName == "result") { queryObj.result = e.textContent; }
 		if (e.nodeName == "comment") { queryObj.comment = e.textContent; }
-		if (e.nodeName == "reversedns") { queryObj.reversedns = e.textContent; }
 		if (e.nodeName == "domain") { queryObj.domain = e.textContent; }
 		if (e.nodeName == "method") { queryObj.method = e.textContent; }
 		

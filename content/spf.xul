@@ -4,8 +4,9 @@
 	  xmlns:html="http://www.w3.org/1999/xhtml">
 
 	<script type="application/x-javascript" src="chrome://spf/content/sha1.js" />
-	<script type="application/x-javascript" src="chrome://spf/content/spf.js" />
 	<script type="application/x-javascript" src="chrome://spf/content/dns.js" />
+	<script type="application/x-javascript" src="chrome://spf/content/spf.js" />
+	<script type="application/x-javascript" src="chrome://spf/content/sve.js" />
 	
 	<vbox id="expandedHeaders">
 		<hbox position="1" id="spfBox">
