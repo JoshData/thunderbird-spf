@@ -34,6 +34,11 @@
 		if (isPref("spf.warnunverified", "yes"))
 			spf_warnunverified.checked = true;
 
+	    var spf_dnsserver = document.getElementById("spf_dnsserver");
+		if (prefs.getPrefType("dns.nameserver") == prefs.PREF_STRING) {
+			spf_dnsserver.value = prefs.getCharPref("dns.nameserver");
+		}
+			
 		initList("spf_mta", "spf.internal_mtas")
 		initList("spf_forwarder", "spf.forwarding_mtas")
 	}
@@ -74,6 +79,9 @@
 		
 		var spf_warnunverified = document.getElementById("spf_warnunverified");
 		prefs.setCharPref("spf.warnunverified", spf_warnunverified.checked ? "yes" : "no");
+		
+	    var spf_dnsserver = document.getElementById("spf_dnsserver");
+		prefs.setCharPref("dns.nameserver", spf_dnsserver.value);
 	}
 	
 	function mtaUpdateList(listboxname, prefname) {
@@ -174,7 +182,14 @@
 		<textbox id="spf_queryserver" style="width: 250px"/>
 	  </vbox>
 	  <description>This is the address of the server which will be contacted to perform SPF/DK queries each time an email is loaded. When left blank, this setting will be set to the default query server the next time a mail message is loaded.</description>	  
+
+	  <separator class="groove-thin"/>
+	  
+	  <vbox>
+		<label value="DNS Server:" class="header"/>
+		<textbox id="spf_dnsserver" style="width: 250px"/>
+	  </vbox>
+	  <description>Optionally provide the IP or hostname of your own DNS server.  Although the extension will work without this option set, verifications will be slower and not all emails will be able to be verified with SPF unless you provide the DNS nameserver assigned to you by your ISP or sys-admin.</description>	  
 	  
 	 </vbox>
-
 </dialog>

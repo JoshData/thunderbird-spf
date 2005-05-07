@@ -11,7 +11,8 @@ DNS_LoadPrefs();
 function DNS_LoadPrefs() {
 	var prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
 
-	if (prefs.getPrefType("dns.nameserver") == prefs.PREF_STRING) {
+	if (prefs.getPrefType("dns.nameserver") == prefs.PREF_STRING
+		&& prefs.getCharPref("dns.nameserver") != null && prefs.getCharPref("dns.nameserver") != "") {
 		DNS_ROOT_NAME_SERVER = prefs.getCharPref("dns.nameserver");
 		DNS_ALLOW_RECURSION = 0; // When our own name server has no answer
 								  // for us, but gives us an authority server,
