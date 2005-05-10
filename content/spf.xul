@@ -6,6 +6,14 @@
 	<script type="application/x-javascript" src="chrome://spf/content/sha1.js" />
 	<script type="application/x-javascript" src="chrome://spf/content/dns.js" />
 	<script type="application/x-javascript" src="chrome://spf/content/spf.js" />
+	
+	<!--
+	<script type="application/x-javascript" src="chrome://spf/content/BigInt.js" />
+	<script type="application/x-javascript" src="chrome://spf/content/Barrett.js" />
+	<script type="application/x-javascript" src="chrome://spf/content/RSA.js" />
+	<script type="application/x-javascript" src="chrome://spf/content/domainkeys.js" />
+	-->
+	
 	<script type="application/x-javascript" src="chrome://spf/content/sve.js" />
 	
 	<hbox id="expandedHeaderView">

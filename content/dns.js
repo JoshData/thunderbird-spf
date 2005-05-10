@@ -1,3 +1,12 @@
+/*
+ * DNS LIBRARY IN JAVASCRIPT
+ *
+ * Copyright 2005 Joshua Tauberer <tauberer@for.net>
+ *
+ * Feel free to use this file however you want, but
+ * credit would be nice.
+ */
+
 var DNS_ROOT_NAME_SERVER = "J.ROOT-SERVERS.NET";
 var DNS_ALLOW_RECURSION = 1;
 

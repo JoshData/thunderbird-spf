@@ -4,7 +4,7 @@
  * Copyright 2004-2005 Joshua Tauberer <tauberer@for.net>
  *
  * Feel free to use and copy and modify this file however you like.
-*
+ *
  * While I disagree with the claim of the below statement, I must CYA
  * and include:  This code incorporates intellectual property owned by
  * Yahoo! and licensed pursuant to the Yahoo! DomainKeys Patent License
@@ -21,7 +21,7 @@ var ReturnPathRegEx = /^Return-Path: <([^>]+)>/;
 var ReceivedRegEx = /^Received: from ([\w\W]+) \([\w\W]*\[([\d\.]+)\]/; // The sendmail-style Received: header.
 var ReceivedRegEx2 = /^Received: from \[([\d\.]+)\] \(helo=([^)]+)\)/; // An apparently Exim-style header: Received: from [65.54.185.19] (helo=hotmail.com)
 var ReceivedRegEx3 = /^Received: from ([\w\.]+) \(([\d\.]+)\)/; // Yet another format
-var ReceivedRegEx4 = /^Received: from [\w\W]+\(HELO ([\w\.]+)\) \(([\d\.]+)\)/; // Yet another format
+var ReceivedRegEx4 = /^Received: from [\w\W]+\((EHLO|HELO) ([\w\.]+)\) \(([\d\.]+)\)/; // Yet another format
 var FromRegEx = /^From: [^<]*<([^>]+)>|^From: ([\w\d\._-]+@[\w\d\._-]+)/i;	
 var DateRegEx = /^Date: ([\w\W]+)/i;
 
@@ -301,7 +301,7 @@ function spfGo(manual) {
 		if (m) { ip = m[1]; he = m[2]; }
 
 		m = ReceivedRegEx4.exec(h);
-		if (m) { ip = m[1]; he = m[2]; }
+		if (m) { ip = m[2]; he = m[3]; }
 
 		if (he != null && ip != null) {
 			var internal = 0;
@@ -375,21 +375,21 @@ function spfGo(manual) {
 	}
 	
 	// If the message does not have a parseable date, flag an error.
-	if (!DateHdr) {
+	/*if (!DateHdr) {
 		statusText.value = "Message date could not be determined.";
 		return;
-	}
+	}*/
 	
 	// If the message is old, there's no way to know whether something legitimate now
 	// was legitimate when it was sent, or something illegitimate now might have
 	// (confusingly) been legitimate at the time.
-	if (new Date().getTime() - DateHdr > 1000*60*60*24*DAYS_TOO_OLD) {
+	if (DateHdr != null && new Date().getTime() - DateHdr > 1000*60*60*24*DAYS_TOO_OLD) {
 		statusText.value = "Message is too old to verify sender.";
 		return;
 	}
 	
 	// For completeness, if a message was sent too far in the future, flag a problem.
-	if (DateHdr - new Date().getTime() > 1000*60*60*24*DAYS_IN_THE_FUTURE) {
+	if (DateHdr != null && DateHdr - new Date().getTime() > 1000*60*60*24*DAYS_IN_THE_FUTURE) {
 		statusText.value = "Message date is in the future.  Sender verification skipped.";
 		return;
 	}

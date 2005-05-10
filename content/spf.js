@@ -1,4 +1,13 @@
-// http://www.ozonehouse.com/mark/spf/draft-lentczner-spf-00.txt
+/*
+ * SENDER POLICY FRAMEWORK LIBRARY IN JAVASCRIPT
+ *
+ * Copyright 2005 Joshua Tauberer <tauberer@for.net>
+ *
+ * Feel free to use this file however you want, but
+ * credit would be nice.
+ */
+
+ // http://www.ozonehouse.com/mark/spf/draft-lentczner-spf-00.txt
 
 var SPF_GUESS = 1;
 

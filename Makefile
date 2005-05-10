@@ -1,6 +1,7 @@
 JARSOURCES=\
 	content/contents.rdf \
-	content/sha1.js content/dns.js content/spf.js content/sve.js  \
+	content/sha1.js content/dns.js content/spf.js content/domainkeys.js content/sve.js  \
+	content/BigInt.js content/Barrett.js content/RSA.js \
 	content/spf.xul content/options.xul \
 	content/misc.js content/trustedmta.xul content/trustedforwarder.xul
 
