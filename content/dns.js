@@ -99,10 +99,12 @@ function reverseDNS(ip, callback) {
 				
 				queryDNS(hostnames[i], "A",
 				function(arecs) {
-					var j;
-					var matched = false;
-					for (j = 0; j < arecs.length; j++) {
-						if (arecs[j] == ip) { matched = true; break; }
+					if (arecs != null) {
+						var j;
+						var matched = false;
+						for (j = 0; j < arecs.length; j++) {
+							if (arecs[j] == ip) { matched = true; break; }
+						}
 					}
 					
 					if (matched)

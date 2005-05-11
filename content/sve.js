@@ -692,6 +692,16 @@ function SVE_QuerySPF(helo, ip, email_from, email_envelope, dkheader, dkhash, fu
 	
 	statusText.value = "Performing SPF verification...";
 	
+	// Check mailpolice's fraud list.
+	queryDNS(
+		SVE_GetDomain(email_from) + ".fraud.rhs.mailpolice.com",
+		"A",
+		function(addr) {
+			if (addr != null)
+				alert("The domain <" + SVE_GetDomain(email_from) + "> is listed in the MailPolice fraud blocklist.  It is likely this message was written with malicious intensions.  It is advised that you do not reply or open any links in the email.");
+		});
+	
+	
 	// Remember what message we're looking at now.  If the
 	// user moves on to another message while we're waiting
 	// for some asynchronous operation to finish, discard
