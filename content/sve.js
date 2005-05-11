@@ -573,11 +573,10 @@ function spfGo(manual) {
 	
 	// Run the query.
 	
-	SPFSendQuery(
-		HeloName, IPAddr,
+	SVE_QuerySPF(HeloName, IPAddr,
 		FromHdr, EnvFrom != null && EnvFrom != FromHdr ? EnvFrom : null,
 		DKHash == null ? null : DKHeader, DKHash,
-		"spfGo2()", serverurl);
+		"spfGo2()");
 }
 
 function spfGo2() {	
@@ -686,29 +685,48 @@ function spfGoFinish() {
 	}
 }
 
-function SVE_QuerySPF(ip, email_from, email_envelope, func) {
+function SVE_QuerySPF(helo, ip, email_from, email_envelope, dkheader, dkhash, func) {
 	// Query the email from: first.  If that doesn't pass,
 	// then query the email envelope.  If that also doesn't
 	// pass, then go with the result of the from: query.
 	
 	statusText.value = "Performing SPF verification...";
 	
+	// Remember what message we're looking at now.  If the
+	// user moves on to another message while we're waiting
+	// for some asynchronous operation to finish, discard
+	// the result when the operation finishes.
+	var curMessage = GetFirstSelectedMessage();
+	
 	SPF(ip, SVE_GetDomain(email_from),
 		function(result) {
+			if (curMessage != GetFirstSelectedMessage())
+				return;
+			
 			if (result.status == "+" || email_envelope == null)
-				SVE_QuerySPF2(result.status, result.message, result.isguess, SVE_GetDomain(email_from), ip, func);
+				SVE_QuerySPF2(result.status, result.message, result.isguess, SVE_GetDomain(email_from), helo, ip, email_from, email_envelope, dkheader, dkhash, func);
 			else
 				SPF(ip, SVE_GetDomain(email_envelope),
 					function(result2) {
+						if (curMessage != GetFirstSelectedMessage())
+							return;
+						
 						if (result2.status == "+")
-							SVE_QuerySPF2(result2.status, result2.message, result2.isguess, SVE_GetDomain(email_envelope), ip, func);
+							SVE_QuerySPF2(result2.status, result2.message, result2.isguess, SVE_GetDomain(email_envelope), helo, ip, email_from, email_envelope, dkheader, dkhash, func);
 						else
-							SVE_QuerySPF2(result.status, result.message, result.isguess, SVE_GetDomain(email_from), ip, func);
+							SVE_QuerySPF2(result.status, result.message, result.isguess, SVE_GetDomain(email_from), helo, ip, email_from, email_envelope,  dkheader, dkhash, func);
 					});
 		});
 }
 
-function SVE_QuerySPF2(result, message, isguess, domain, ip, func) {
+function SVE_QuerySPF2(result, message, isguess, domain, helo, ip, email_from, email_envelope, dkheader, dkhash, func) {
+	// If the SPF test didn't pass, and if there is DK information,
+	// then send a query to the query server.
+	if (result != "+" && dkheader != null && dkhash != null) {
+		SPFSendQuery(helo, ip, email_from, email_envelope, dkheader, dkhash, func);
+		return;
+	}
+	
 	if (result == "+") result = "pass";
 	else if (result == "-") result = "fail";
 	else if (result == "~") result = "fail";
@@ -730,12 +748,7 @@ function SVE_GetDomain(emailaddress) {
 	return emailaddress.substr(at+1);
 }
 
-function SPFSendQuery(helo, ip, email_from, email_envelope, dkheader, dkhash, func, status) {
-	if (dkheader == null || dkhash == null) {
-		SVE_QuerySPF(ip, email_from, email_envelope, func);
-		return;
-	}
-	
+function SPFSendQuery(helo, ip, email_from, email_envelope, dkheader, dkhash, func) {
 	// Prepare the URL of the query.
 	
 	var url = serverurl;
@@ -779,6 +792,8 @@ function SPFSendQuery(helo, ip, email_from, email_envelope, dkheader, dkhash, fu
 	
 	// Query the server.
 
+	var curMessage = GetFirstSelectedMessage();
+	
 	statusText.value = "Contacting verification server...";
 	
 	xmlhttp.open("GET", url, true);
@@ -787,6 +802,7 @@ function SPFSendQuery(helo, ip, email_from, email_envelope, dkheader, dkhash, fu
 		statusText.style.color = "blue";
 	};
 	xmlhttp.onload = function() {
+		if (GetFirstSelectedMessage() != curMessage) return;
 		SPFSendQuery2(func, queryObj);
 	};
 	xmlhttp.send(null);
