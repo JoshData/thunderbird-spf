@@ -581,8 +581,6 @@ function spfGo(manual) {
 		FromHdr, EnvFrom != null && EnvFrom != FromHdr ? EnvFrom : null,
 		DKHash == null ? null : DKHeader, DKHash,
 		"spfGo2()");
-		
-	//SVE_CheckForLookAlikes(SVE_GetDomain(FromHdr));
 }
 
 function spfGo2() {	
@@ -612,7 +610,12 @@ function spfGo3() {
 	spfGoFinish();
 }
 
-function spfGoFinish() {	
+function spfGoFinish() {
+	// Check for similarly-named domains.  There's no sense in doing this if
+	// the domain is already apparently forged.	
+	if (QueryReturn.result != "fail")
+		SVE_CheckForLookAlikes(SVE_GetDomain(FromHdr));
+	
 	// Set up the explanation label.
 	statusLink.style.display = null;
 	if (QueryReturn.comment == "")
@@ -713,9 +716,23 @@ function SVE_QuerySPF(helo, ip, email_from, email_envelope, dkheader, dkhash, fu
 	// for some asynchronous operation to finish, discard
 	// the result when the operation finishes.
 	var curMessage = GetFirstSelectedMessage();
+	var gotInfo = new Object();	
+	
+	// If no SPF result is available in 5 seconds, this is
+	// probably because DNS is taking a long time, or
+	// some server is only taking UDP requests.  The user
+	// should set his DNS option.
+	setTimeout(
+		function() {
+			if (gotInfo.got) return;
+			statusText.value = "Performing SPF verification...  [Try setting DNS server in options.]";
+		},
+		5000);
 	
 	SPF(ip, SVE_GetDomain(email_from),
 		function(result) {
+			gotInfo.got = true;
+			
 			if (curMessage != GetFirstSelectedMessage())
 				return;
 			
@@ -871,6 +888,8 @@ function SPFSendQuery2(func, queryObj) {
 }
 
 function SVE_CheckForLookAlikes(domain) {
+	if (domain == "gmail.com" || domain == "yahoo.com" || domain == "aol.com" || domain == "hotmail.com") return; // we know these are good
+	
 	SVE_CheckForLookAlikesIDN(domain);
 	
 	var warned = new Object();
@@ -891,18 +910,18 @@ function SVE_CheckForLookAlikesMutations(domain, warned) {
 	for (var i = 0; i < domain.length; i++) {
 		if (domain.charAt(i) == "i" || domain.charAt(i) == "I") {
 			SVE_CheckForLookAlikesMutations2(domain, i, "l", warned);
-			SVE_CheckForLookAlikesMutations2(domain, i, "1", warned);
+			//SVE_CheckForLookAlikesMutations2(domain, i, "1", warned);
 		}
 		if (domain.charAt(i) == "l" || domain.charAt(i) == "L") {
 			SVE_CheckForLookAlikesMutations2(domain, i, "i", warned);
-			SVE_CheckForLookAlikesMutations2(domain, i, "1", warned);
+			//SVE_CheckForLookAlikesMutations2(domain, i, "1", warned);
 		}
 		if (domain.charAt(i) == "1") {
 			SVE_CheckForLookAlikesMutations2(domain, i, "i", warned);
 			SVE_CheckForLookAlikesMutations2(domain, i, "l", warned);
 		}
 		if (domain.charAt(i) == "o") {
-			SVE_CheckForLookAlikesMutations2(domain, i, "0", warned);
+			//SVE_CheckForLookAlikesMutations2(domain, i, "0", warned);
 		}
 		if (domain.charAt(i) == "0") {
 			SVE_CheckForLookAlikesMutations2(domain, i, "o", warned);
