@@ -128,6 +128,7 @@ function sveRearrangeBoxes() {
 	var curContainer = widget.parentNode;
 	var newContainer = document.createElement("vbox");
 	curContainer.insertBefore(newContainer, widget);
+	curContainer.removeChild(widget);
 	newContainer.appendChild(widget);
 	newContainer.insertBefore(spfBox, widget);
 }
