@@ -148,6 +148,9 @@ function spfGo(manual) {
 	statusLink = document.getElementById("spfLink");
 	statusTrust = document.getElementById("spfTrust");
 	
+	var spfDomainWarning = document.getElementById("spfDomainWarning");
+	spfDomainWarning.style.display = "none";
+	
 	// Abort any previous SPF checks, and reset the XUL elements.
 	
 	xmlhttp.abort();
@@ -577,6 +580,8 @@ function spfGo(manual) {
 		FromHdr, EnvFrom != null && EnvFrom != FromHdr ? EnvFrom : null,
 		DKHash == null ? null : DKHeader, DKHash,
 		"spfGo2()");
+		
+	//SVE_CheckForLookAlikes(SVE_GetDomain(FromHdr));
 }
 
 function spfGo2() {	
@@ -862,6 +867,62 @@ function SPFSendQuery2(func, queryObj) {
 	
 	// Call the callback
 	window.setTimeout(func, 1);
+}
+
+function SVE_CheckForLookAlikes(domain) {
+	SVE_CheckForLookAlikesIDN(domain);
+	
+	var warned = new Object();
+	SVE_CheckForLookAlikesMutations(domain, warned);
+}
+
+function SVE_CheckForLookAlikesIDN(domain) {
+	for (var i = 0; i < domain.length; i++) {
+		if (domain.charCodeAt(i) >= 128) {
+			SVE_ShowDomainWarning("Warning: The domain of this email <" + domain + "> has extended characters in it that may cause it to have the same appearance as the usual <" + domain + ">, although the domain of this email is different.");
+			return;
+		}
+	}
+}
+
+function SVE_CheckForLookAlikesMutations(domain, warned) {
+	var nc;
+	for (var i = 0; i < domain.length; i++) {
+		if (domain.charAt(i) == "i" || domain.charAt(i) == "I") {
+			SVE_CheckForLookAlikesMutations2(domain, i, "l", warned);
+			SVE_CheckForLookAlikesMutations2(domain, i, "1", warned);
+		}
+		if (domain.charAt(i) == "l" || domain.charAt(i) == "L") {
+			SVE_CheckForLookAlikesMutations2(domain, i, "i", warned);
+			SVE_CheckForLookAlikesMutations2(domain, i, "1", warned);
+		}
+		if (domain.charAt(i) == "1") {
+			SVE_CheckForLookAlikesMutations2(domain, i, "i", warned);
+			SVE_CheckForLookAlikesMutations2(domain, i, "l", warned);
+		}
+		if (domain.charAt(i) == "o") {
+			SVE_CheckForLookAlikesMutations2(domain, i, "0", warned);
+		}
+		if (domain.charAt(i) == "0") {
+			SVE_CheckForLookAlikesMutations2(domain, i, "o", warned);
+		}
+	}
+}
+function SVE_CheckForLookAlikesMutations2(domain, i, c, warned) {
+	var dom2 = domain.substr(0, i) + c + domain.substr(i+1);
+	queryDNS(dom2, "A",
+		function(resolved) {
+			if (resolved == null || resolved.length == 0) return;
+			if (warned.warned) return;
+			warned.warned = true;
+			SVE_ShowDomainWarning("Warning: The domain of this email <" + domain + "> is similar to the domain <" + dom2 + ">.");
+		});
+}
+
+function SVE_ShowDomainWarning(warning) {
+	var spfDomainWarning = document.getElementById("spfDomainWarning");
+	spfDomainWarning.style.display = null;
+	spfDomainWarning.value = warning;
 }
 
 function QueryRet(querystring, querystring_nodk) {

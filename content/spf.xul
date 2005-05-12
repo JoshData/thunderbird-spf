@@ -31,6 +31,8 @@
 						<description id="spfLink">Loading...</description>
 						<description id="spfTrust" onclick="window.mta=this.mta; window.reversedns = this.reversedns; var w = window.open('chrome://spf/content/trusted' + this.linktype + '.xul', '', 'chrome');" style="cursor: pointer; color: blue">Loading...</description>
 					</vbox>
+					
+					<description id="spfDomainWarning" value="" style="display: none"/>
 				</vbox>
 			</hbox>
 		</hbox>
