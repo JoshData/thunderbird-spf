@@ -174,7 +174,7 @@ function spfGo(manual) {
 
 	if (!uri) return;
 	if (uri.indexOf("news-message://") == 0) return;
-
+	
 	statusText.style.display = null;
 	
 	if (checkonload == "no" && !manual) {
@@ -581,6 +581,64 @@ function spfGo(manual) {
 		FromHdr, EnvFrom != null && EnvFrom != FromHdr ? EnvFrom : null,
 		DKHash == null ? null : DKHeader, DKHash,
 		"spfGo2()");
+	
+	// Protect all links.  This was an interesting idea, but it's disabled for now.
+	// SVE_ProtectLinks(document.getElementById("messagepane").contentDocument);
+}
+
+function SVE_ProtectLinks(document) {
+	var links = document.getElementsByTagName("a");
+	var i;
+	for (i = 0; i < links.length; i++)
+		SVE_ProtectLink(links[i]);
+	links = document.getElementsByTagName("A");
+	for (i = 0; i < links.length; i++)
+		SVE_ProtectLink(links[i]);
+}
+
+function SVE_ProtectLink(a) {
+	if (a.href == null || a.href == "" || startsWith(a.href, "#")) return;
+	if (a.sve_checked) return;
+	a.sve_checked = true;
+
+	if (a.onclick != null) {
+		a.onclick = "alert('This scripted link has been disabled by the Sender Verification Extension.'); return true;";
+		return;
+	}
+	
+	var url = Components.classes["@mozilla.org/network/standard-url;1"].createInstance();
+	try {
+		url.QueryInterface(Components.interfaces.nsIStandardURL).init(1, -1, a.href, null, null);
+		url = url.QueryInterface(Components.interfaces.nsIURI).asciiHost;
+	} catch (ex) {
+		url = null;
+	}
+
+	if (url == null || url == "") { 
+		alert("Problem with " + a.href);
+		return; // probably should disable the link
+	}
+	
+	var oldhref = a.href;
+	a.href = "senderverification:Sender Verification is checking this link...";
+	
+	queryDNS(
+		url + ".fraud.rhs.mailpolice.com",
+		"A",
+		function(addr, a) {
+			if (addr == null) {
+				a.href = oldhref;
+				return;
+			}
+		
+			a.childNodes.item(0).nodeValue = "[FRAUD] " + a.childNodes.item(0).nodeValue + " [FRAUD]";
+			a.href = "senderverification:This link was listed in the MailPolice.com block list.";
+			
+			if (a.ownerDocument.sve_BlockedLink) return;
+			a.ownerDocument.sve_BlockedLink = true;
+			alert("Sender Verification has blocked one or more links on this page that were listed in the MailPolice.com fraud prevention list.");
+		},
+		a);
 }
 
 function spfGo2() {	
@@ -631,7 +689,7 @@ function spfGoFinish() {
 		reverseDNS(IPAddr, function(hostnames) {
 			if (hostnames == null || hostnames.length == 0) return;
 			statusTrust.style.display = null;
-			statusTrust.childNodes[0].nodeValue = "Is " + hostnames[0] + " in your network?";
+			statusTrust.childNodes[0].nodeValue = "Sender was " + hostnames[0] + ". Is that in your network?";
 			statusTrust.linktype = "mta";
 			statusTrust.mta = IPAddr;
 			statusTrust.reversedns = hostnames[0];
@@ -646,7 +704,7 @@ function spfGoFinish() {
 				statusText.value = "Sending Domain <" + QueryReturn.domain + "> Verified";
 				statusText.style.color = null;
 			} else {
-				statusText.value = "Envelope Domain <" + QueryReturn.domain + "> Verified (From: Address Unverified)";
+				statusText.value = "From: address could not be verified. Verified envelope domain: <" + QueryReturn.domain + ">";
 				statusText.style.color = "red";
 
 				if (QueryReturn.promptToTrust) {
@@ -707,7 +765,7 @@ function SVE_QuerySPF(helo, ip, email_from, email_envelope, dkheader, dkhash, fu
 		"A",
 		function(addr) {
 			if (addr != null)
-				alert("The domain <" + SVE_GetDomain(email_from) + "> is listed in the MailPolice fraud blocklist.  It is likely this message was written with malicious intensions.  It is advised that you do not reply or open any links in the email.");
+				alert("The domain <" + SVE_GetDomain(email_from) + "> is listed in the MailPolice fraud blocklist.  It is likely this message was written with malicious intentions.  It is advised that you do not reply or open any links in the email.");
 		});
 	
 	
@@ -763,7 +821,7 @@ function SVE_QuerySPF2(result, message, isguess, domain, helo, ip, email_from, e
 	if (result == "+") result = "pass";
 	else if (result == "-") result = "fail";
 	else if (result == "~") result = "fail";
-	else if (result == "?") result = "unknown";
+	else if (result == "?") result = "neutral";
 	else if (result == "0") result = "none";
 	else result = "error";
 	
@@ -943,6 +1001,15 @@ function SVE_ShowDomainWarning(warning) {
 	var spfDomainWarning = document.getElementById("spfDomainWarning");
 	spfDomainWarning.style.display = null;
 	spfDomainWarning.value = warning;
+}
+
+function DumpDOM(indent, element) {
+	if (element == null) { element = indent; indent = ""; }
+	var consoleService = Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService);
+	consoleService.logStringMessage(indent + element.nodeName + " id=" + element.id);
+	for (var i = 0; i < element.childNodes.length; i++) {
+		DumpDOM(indent + "  ", element.childNodes.item(i));		
+	}
 }
 
 function QueryRet(querystring, querystring_nodk) {
