@@ -175,6 +175,12 @@ function spfGo(manual) {
 	if (!uri) return;
 	if (uri.indexOf("news-message://") == 0) return;
 	
+	// If we're in offline mode, bail out.  Unfortunately this doesn't seem
+	// to actually return true when we're in offline mode.
+	var ioservice =
+	Components.classes["@mozilla.org/network/io-service;1"].createInstance().QueryInterface(Components.interfaces.nsIIOService);
+	if (ioservice.offline) return;
+
 	statusText.style.display = null;
 	
 	if (checkonload == "no" && !manual) {
@@ -199,7 +205,7 @@ function spfGo(manual) {
 	statusText.value = "Scanning message headers...";
 	
     var msgService = messenger.messageServiceFromURI(uri);
-    
+	
 	var consumer = Components.classes["@mozilla.org/network/sync-stream-listener;1"].createInstance();
 	var consumer_inputstream = consumer.QueryInterface(Components.interfaces.nsIInputStream);
 	var input = Components.classes["@mozilla.org/scriptableinputstream;1"].createInstance();
@@ -653,7 +659,7 @@ function spfGo2() {
 		&& endsWith(EnvFrom, "@" + QueryReturn.domain)) {
 		if (domainTrusted) {
 			QueryReturn2 = QueryReturn;
-			SPFSendQuery(HeloName2, IPAddr2, FromHdr, null, null, null, "spfGo3()", "forward check");
+			SVE_QuerySPF(HeloName2, IPAddr2, FromHdr, null, null, null, "spfGo3()");
 			return;
 		} else {
 			QueryReturn.promptToTrust = 1;
