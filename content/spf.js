@@ -252,10 +252,10 @@ function SPF_DoCheck(record, ip, domain, reversedns, callback, hops) {
 	if (result != null) {
 		var message;
 		if (result == "+") message = "The sender was " + (!record.isguess ? "explicitly" : "implicitly") + " permitted by <" + domain + ">.";
-		else if (result == "-") message = "The sender was denied by <" + domain + ">.  Address domain could be forged.";
-		else if (result == "~") message = "The sender was not permitted by <" + domain + ">.  Address domain could be forged.";
-		else if (result == "?") message = "The sender could not be verified by <" + domain + ">.  Address domain could be forged.";
-		else if (result == "permerror") message = "The sender has a SPF configuration problem.";
+		else if (result == "-") message = "The sender was denied by <" + domain + ">.";
+		else if (result == "~") message = "The sender was not permitted by <" + domain + ">.";
+		else if (result == "?") message = "The sender could not be verified by <" + domain + ">.";
+		else if (result == "permerror") message = "The sender has a SPF configuration problem or uses an unsupported feature.";
 		else if (result == "temperror") message = "There was a temporary problem using SPF verification.";
 		
 		callback(new SPFResult(result, message, record.isguess));
@@ -263,7 +263,7 @@ function SPF_DoCheck(record, ip, domain, reversedns, callback, hops) {
 	}
 	
 	if (record.isguess) {
-		callback(new SPFResult("0", "Domain does not support SPF verification.", 0));
+		callback(new SPFResult("0", "Domain <" + domain + "> does not support SPF verification.", 0));
 		return;
 	}
 	
@@ -273,7 +273,7 @@ function SPF_DoCheck(record, ip, domain, reversedns, callback, hops) {
 	}		
 	
 	// Processing fell through to the end.
-	callback(new SPFResult("?", "The sender could not be verified by <" + domain + ">.  Address domain could be forged.", false));
+	callback(new SPFResult("?", "The sender could not be verified by <" + domain + ">.", false));
 }
 
 function SPF_DoCheck2(record, ip, domain, reversedns) {
