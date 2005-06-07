@@ -8,7 +8,7 @@
 		<em:name>Sender Verification Extension</em:name>
 		<em:description>Protects you from phishing with SPF and DomainKeys.</em:description>
 
-		<em:version>0.7.0.20050512</em:version>
+		<em:version>0.7.1.20050607</em:version>
 
 		<em:creator>Joshua Tauberer (tauberer@for.net)</em:creator>
 		<em:homepageURL>http://taubz.for.net/code/spf</em:homepageURL>

@@ -26,7 +26,7 @@
 		
 	    var spf_usedk = document.getElementById("spf_usedk");
 		spf_usedk.checked = true;
-		if (isPref("spf.domainkeys", "no"))
+		if (!isPref("spf.domainkeys", "yes"))
 			spf_usedk.checked = false;
 			
 		var spf_warnunverified = document.getElementById("spf_warnunverified");
@@ -138,7 +138,7 @@
   <vbox flex="1" style="width: 500px">
 	  <vbox>
   	  <checkbox label="Check Every Email" id="spf_checkonload"/>
-	  <checkbox label="Check DomainKeys Signatures" id="spf_usedk"/>
+	  <checkbox label="Check DomainKeys Signatures (Small bits of your emails are sent over the Internet; see the privacy warning on the website)" id="spf_usedk"/>
 	  <checkbox label="Show Warnings for Unverified Emails" id="spf_warnunverified"/>
 	  </vbox>
   
@@ -178,10 +178,10 @@
 	  <separator class="groove-thin"/>
 	  
 	  <vbox>
-		<label value="Verification Server:" class="header"/>
+		<label value="DK Verification Server:" class="header"/>
 		<textbox id="spf_queryserver" style="width: 250px"/>
 	  </vbox>
-	  <description>This is the address of the server which will be contacted to perform SPF/DK queries each time an email is loaded. When left blank, this setting will be set to the default query server the next time a mail message is loaded.</description>	  
+	  <description>This is the address of the server which will be contacted to perform DomainKeys verifications if Check DomainKeys Signatures is checked above.  Leave blank to use the default server.</description>	  
 
 	  <separator class="groove-thin"/>
 	  
@@ -189,7 +189,7 @@
 		<label value="DNS Server:" class="header"/>
 		<textbox id="spf_dnsserver" style="width: 250px"/>
 	  </vbox>
-	  <description>Optionally provide the IP or hostname of your own DNS server.  Although the extension will work without this option set, verifications will be slower and not all emails will be able to be verified with SPF unless you provide the DNS nameserver assigned to you by your ISP or sys-admin.</description>	  
+	  <description>Optionally provide the IP or hostname of your own DNS server.  Although the extension will work without this option set, verifications will be slower and not all emails will be able to be verified with SPF unless you provide the DNS nameserver assigned to you by your ISP or sys-admin.  In Windows XP, to find your DNS server, go to Start -&gt; Control Panel -&gt; Network Connections -&gt; Local Area Network -&gt; Support -&gt; Details. Then take the IP address listed next to DNS Servers. It will look something like "123.456.789.123".</description>	  
 	  
 	 </vbox>
 </dialog>

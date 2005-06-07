@@ -19,7 +19,7 @@ var useragent = "sve:0.7"; // The useragent field sent to the query server
 
 var ReturnPathRegEx = /^Return-Path: <([^>]+)>/;
 var ReceivedRegEx = /^Received: from ([\w\W]+) \([\w\W]*\[([\d\.]+)\]/; // The sendmail-style Received: header.
-var ReceivedRegEx2 = /^Received: from \[([\d\.]+)\] \(helo=([^)]+)\)/; // An apparently Exim-style header: Received: from [65.54.185.19] (helo=hotmail.com)
+var ReceivedRegEx2 = /^Received: from \[([\d\.]+)\] \([\w\W]*helo=([^)]+)\)/; // An apparently Exim-style header: Received: from [65.54.185.19] (...helo=hotmail.com)
 var ReceivedRegEx3 = /^Received: from ([\w\.]+) \(([\d\.]+)\)/; // Yet another format
 var ReceivedRegEx4 = /^Received: from [\w\W]+\((EHLO|HELO) ([\w\.]+)\) \(([\d\.]+)\)/; // Yet another format
 var FromRegEx = /^From: [^<]*<([^>]+)>|^From: ([\w\d\._-]+@[\w\d\._-]+)/i;	
@@ -55,6 +55,8 @@ var IPAddr = null;
 var HeloName2 = null;
 var IPAddr2 = null;
 
+var DKHeader = null;
+var DKHeaderPostPosition = null;
 var DKHash = null;
 
 var QueryReturn = null;
@@ -79,15 +81,10 @@ messagepane.addEventListener("load", sveRearrangeBoxes, true);
 messagepane.addEventListener("load", spfGoEvent, true);
 
 function spfLoadSettings() {
-	serverurl = "";
+	serverurl = "http://taubz.for.net/code/spf/cgi-bin/query.cgi";
 	if (prefs.getPrefType("spf.queryserver") == prefs.PREF_STRING) {
-		serverurl = prefs.getCharPref("spf.queryserver");
-	}
-	
-	// Set the default query server.
-	if (!serverurl) {
-		serverurl = "http://taubz.for.net/code/spf/cgi-bin/query.cgi";
-		prefs.setCharPref("spf.queryserver", serverurl);
+		if (prefs.getCharPref("spf.queryserver") != "")
+			serverurl = prefs.getCharPref("spf.queryserver");
 	}
 	
 	// Check on mail load?
@@ -96,7 +93,7 @@ function spfLoadSettings() {
 		checkonload = prefs.getCharPref("spf.checkonload");
 	}
 	
-	usedk = "yes";
+	usedk = "no";
 	if (prefs.getPrefType("spf.domainkeys") == prefs.PREF_STRING) {
 		usedk = prefs.getCharPref("spf.domainkeys");
 	}
@@ -200,31 +197,9 @@ function spfGo(manual) {
 	}
 	
 	// Load the message service, and scan the message headers.
-	// This bit is roughly based on a part of Enigmail.
 
 	statusText.value = "Scanning message headers...";
 	
-    var msgService = messenger.messageServiceFromURI(uri);
-	
-	var consumer = Components.classes["@mozilla.org/network/sync-stream-listener;1"].createInstance();
-	var consumer_inputstream = consumer.QueryInterface(Components.interfaces.nsIInputStream);
-	var input = Components.classes["@mozilla.org/scriptableinputstream;1"].createInstance();
-	var scriptableinput = input.QueryInterface(Components.interfaces.nsIScriptableInputStream);
-
-	/*var async_consumer = Components.classes["@mozilla.org/network/async-stream-listener;1"].createInstance();
-	var async_consumer2 = async_consumer.QueryInterface(Components.interfaces.nsIAsyncStreamListener);
-	async_consumer2.init(consumer_inputstream, null);*/
-	
-	scriptableinput.init(consumer);
-	try {
-		msgService.streamMessage(uri, consumer, msgWindow, null, false, null)
-	} catch (ex) {
-		statusText.value = "Sender verification is not applicable for this message.";
-		return;
-	}
-	
-	var h = "";
-
 	FromHdr = null;
 	EnvFrom = null;
 	DateHdr = null;
@@ -235,145 +210,170 @@ function spfGo(manual) {
 	HeloName2 = null;
 	IPAddr2 = null;
 	
+	DKHeader = null;
 	DKHash = null;
-
-	var mode = 0;
-	var hcont = false;
-	var hlast = "";
-	var bytesread = 0;
 	
-	var DKHeader = null;
-	var DKHeaderPostPosition = null;
+    var msgService = messenger.messageServiceFromURI(uri);
 	
-	var c;
-	var cs;
-	var csi;
-
-	// Read the headers character-by-character because I don't know a better way of doing this.
-	var endofheaders = false;
-	while (scriptableinput.available()) {
-		cs = scriptableinput.read(512)
-		for (csi = 0; csi < cs.length; csi++) {
-		c = cs.charAt(csi);
-		bytesread++;
+    var dataListener = {
+		stream : null,
+		h : "",
+		mode : 0, // 0=Looking for first Received:, 1=Looking for second Received:
+		hcont : false,
+		hlast : "",
+		bytesread : 0,
 		
-		if (c == "\r") { continue; }
-		if ((c == " " || c == "\t") && h == "") { hcont = true; continue; }
-		
-		if (c != "\n") { h += c; continue; }
-		
-		// end of headers
-		if (h == "") { endofheaders = true; break; }
-		
-		// handle a continued header line
-		if (hcont) {
-			if (hlast == "DK") {
-				DKHeader += h;
-				DKHeaderPostPosition = bytesread;
+		onStartRequest: function(request, context) {},
+		onStopRequest: function(request, context, status) { },
+		onDataAvailable: function(request, context, inputStream, offset, count) {
+			if (this.stream == null) {
+				this.stream = Components.classes["@mozilla.org/binaryinputstream;1"]
+				  .createInstance(Components.interfaces.nsIBinaryInputStream);
+				this.stream.setInputStream(inputStream);
 			}
 			
-			hcont = false;
-			h = "";
-			continue;
-		}
-		
-		// handle header
-
-		hlast = "";
-
-		// Compare the header to the regular expressions.
-		
-		var m;
-		
-		m = ReturnPathRegEx.exec(h);
-		if (m) { EnvFrom = m[1].toLowerCase(); }
-		
-		m = FromRegEx.exec(h);
-		if (m) {
-			FromHdr = m[1];
-			if (!FromHdr) { FromHdr = m[2]; }
-			FromHdr = FromHdr.toLowerCase();
-		}
-		
-		m = DateRegEx.exec(h);
-		if (m) { DateHdr = Date.parse(m[1]); }
-		
-		var he = null;
-		var ip = null;
-		
-		m = ReceivedRegEx.exec(h);
-		if (m) { he = m[1]; ip = m[2]; }
-		
-		m = ReceivedRegEx2.exec(h);
-		if (m) { ip = m[1]; he = m[2]; }
+			var c;
+			var csi;
+			var endofheaders = false;
 			
-		m = ReceivedRegEx3.exec(h);
-		if (m) { ip = m[1]; he = m[2]; }
-
-		m = ReceivedRegEx4.exec(h);
-		if (m) { ip = m[2]; he = m[3]; }
-
-		if (he != null && ip != null) {
-			var internal = 0;
-			// TODO: check the fourth range: 172.16.0.0-172.31.255.255
-			if (startsWith(ip, "127.0.0.") || startsWith(ip, "192.168.") || startsWith(ip, "10.")) {
-				internal = 1;
-			} else {
-				// Check spf.host.* preferences to see if these are internal mail servers.
-				var ip2 = ip;
-				while (ip2 != null) {
-					var prefname = "spf.host." + ip2;
-					if (prefs.getPrefType(prefname) == prefs.PREF_STRING) {
-						internal = (prefs.getCharPref(prefname) == "trust");
-						if (internal) break;
+			// PARSE THE HEADERS
+			for (csi = 0; csi < count; csi++) {
+				c = String.fromCharCode(this.stream.read8());
+				this.bytesread++;
+				
+				if (c == "\r") { continue; }
+				if ((c == " " || c == "\t") && this.h == "") { this.hcont = true; continue; }
+				
+				if (c != "\n") { this.h += c; continue; }
+				
+				// end of headers
+				if (this.h == "") { endofheaders = true; break; }
+				
+				// handle a continued header line
+				if (this.hcont) {
+					if (this.hlast == "DK") {
+						DKHeader += this.h;
+						DKHeaderPostPosition = this.bytesread;
 					}
 					
-					// If this was a wildcard test, strip off the wildcard.
-					if (endsWith(ip2, ".*")) { ip2 = ip2.substring(0, ip2.length-2); }
+					this.hcont = false;
+					this.h = "";
+					continue;
+				}
+				
+				// handle header
+		
+				this.hlast = "";
+		
+				// Compare the header to the regular expressions.
+				
+				var m;
+				
+				m = ReturnPathRegEx.exec(this.h);
+				if (m) { EnvFrom = m[1].toLowerCase(); }
+				
+				m = FromRegEx.exec(this.h);
+				if (m) {
+					FromHdr = m[1];
+					if (!FromHdr) { FromHdr = m[2]; }
+					FromHdr = FromHdr.toLowerCase();
+				}
+				
+				m = DateRegEx.exec(this.h);
+				if (m) { DateHdr = Date.parse(m[1]); }
+				
+				var he = null;
+				var ip = null;
+				
+				m = ReceivedRegEx.exec(this.h);
+				if (m) { he = m[1]; ip = m[2]; }
+				
+				m = ReceivedRegEx2.exec(this.h);
+				if (m) { ip = m[1]; he = m[2]; }
 					
-					// If there's a dot in the string, replace what's after the dot
-					// with an asterisk, and continue checking.
-					var dot = ip2.lastIndexOf(".");
-					if (dot > 0) {
-						ip2 = ip2.substring(0, dot+1) + "*";
+				m = ReceivedRegEx3.exec(this.h);
+				if (m) { he = m[1]; ip = m[2]; }
+		
+				m = ReceivedRegEx4.exec(this.h);
+				if (m) { he = m[2]; ip = m[3]; }
+		
+				if (he != null && ip != null) {
+					var internal = 0;
+					// TODO: check the fourth range: 172.16.0.0-172.31.255.255
+					if (startsWith(ip, "127.0.0.") || startsWith(ip, "192.168.") || startsWith(ip, "10.")) {
+						internal = 1;
 					} else {
-						// No more testing.
-						ip2 = null;
+						// Check spf.host.* preferences to see if these are internal mail servers.
+						var ip2 = ip;
+						while (ip2 != null) {
+							var prefname = "spf.host." + ip2;
+							if (prefs.getPrefType(prefname) == prefs.PREF_STRING) {
+								internal = (prefs.getCharPref(prefname) == "trust");
+								if (internal) break;
+							}
+							
+							// If this was a wildcard test, strip off the wildcard.
+							if (endsWith(ip2, ".*")) { ip2 = ip2.substring(0, ip2.length-2); }
+							
+							// If there's a dot in the string, replace what's after the dot
+							// with an asterisk, and continue checking.
+							var dot = ip2.lastIndexOf(".");
+							if (dot > 0) {
+								ip2 = ip2.substring(0, dot+1) + "*";
+							} else {
+								// No more testing.
+								ip2 = null;
+							}
+						}
+					}
+					
+					if (!internal) {
+						// This is the point where we should do an SPF check.
+						if (this.mode == 0) {
+							HeloName = he;
+							IPAddr = ip;
+						} else if (this.mode == 1) {
+							// This gets the second matching Received: line information.
+							HeloName2 = he;
+							IPAddr2 = ip;
+						}						
+						this.mode++;
 					}
 				}
+			
+				if (startsWith(this.h, "DomainKey-Signature: ") && DKHeader == null) {
+					// DKHeader != null to make sure we only read the first DK header in the message.
+					DKHeader = this.h.substring(21, this.h.length);
+					this.hlast = "DK";
+					DKHeaderPostPosition = this.bytesread; // message hash starts from this position
+				}
+		
+				this.h = "";
+				this.hcont = false;
 			}
 			
-			if (!internal) {
-				// This is the point where we should do an SPF check.
-				if (mode == 0) {
-					HeloName = he;
-					IPAddr = ip;
-				} else if (mode == 1) {
-					// This gets the second matching Received: line information.
-					HeloName2 = he;
-					IPAddr2 = ip;
-				}						
-				mode++;
+			if (endofheaders) {
+				spfGo1();
+				throw "ENDOFHEADERS";
 			}
 		}
-	
-		if (startsWith(h, "DomainKey-Signature: ") && DKHeader == null) {
-			// DKHeader != null to make sure we only read the first DK header in the message.
-			DKHeader = h.substring(21, h.length);
-			hlast = "DK";
-			DKHeaderPostPosition = bytesread; // message hash starts from this position
-		}
+    };
 
-		h = "";
-		hcont = false;
-		
-		}
-		if (endofheaders) break;
+	var async_consumer = Components.classes["@mozilla.org/network/async-stream-listener;1"].createInstance();
+	var async_consumer2 = async_consumer.QueryInterface(Components.interfaces.nsIAsyncStreamListener);
+
+	async_consumer2.init(dataListener, null);
+
+	try {
+		msgService.streamMessage(uri, async_consumer, msgWindow, null, false, null)
+	} catch (ex) {
+		statusText.value = "Sender verification is not applicable for this message.";
+		return;
 	}
 	
-	scriptableinput.close();
-	consumer_inputstream.close();
-	
+}
+
+function spfGo1() {
 	if (SVE_GetDomain(FromHdr) == null) FromHdr = null;
 	if (EnvFrom != null && SVE_GetDomain(EnvFrom) == null) EnvFrom = null;
 	
@@ -411,6 +411,21 @@ function spfGo(manual) {
 		return;
 	}
 
+	SVE_QuerySPF(HeloName, IPAddr,
+		FromHdr, EnvFrom != null && EnvFrom != FromHdr ? EnvFrom : null,
+		"spfGo2()");
+	
+	// Protect all links.  This was an interesting idea, but it's disabled for now.
+	// SVE_ProtectLinks(document.getElementById("messagepane").contentDocument);
+	
+}
+
+function SVE_TryDK() {
+	var csi;
+	var mode;
+	var h;
+	var c;
+	
 	// Interpret the DK header
 	if (FromHdr != null && DKHeader != null && DKHeader != "" && usedk != "no") {
 		mode = 0;
@@ -457,139 +472,167 @@ function spfGo(manual) {
 		
 		// Check that required tags are present, and if so compute the email hash
 		if (DK_SIG != null && (DK_CAN == "simple" || DK_CAN == "nofws") && DK_DOMAIN != null && DK_QMETHOD != null && DK_SELECTOR != null && (endsWith(FromHdr, "@" + DK_DOMAIN) || endsWith(FromHdr, "." + DK_DOMAIN))) {
-			// Load up a new scriptable input stream
-			consumer = Components.classes["@mozilla.org/network/sync-stream-listener;1"]
-				.createInstance().QueryInterface(Components.interfaces.nsIInputStream);
-			input = Components.classes["@mozilla.org/scriptableinputstream;1"]
-				.createInstance().QueryInterface(Components.interfaces.nsIScriptableInputStream);
-			input.init(consumer);
-			msgService.streamMessage(uri, consumer, msgWindow, null, false, null)
-			
-			// Move past the first DK header
-			input.read(DKHeaderPostPosition);
-			
-			// Start reading the email in chunks of lines.  Both hash methods are line-based.
-			mode = 0;
-			var line = "";
-			var hashdata = "";
-			var trailingLines = "";
-			hcont = false;
-			hlast = null;
-			
-			sha1_incremental_init();
-			
-			while (input.available()) {
-				cs = input.read(512);
+			statusText.value = "Computing DomainKeys signature...";
+	
+			var dataListener = {
+				stream : null,
+				mode : 0,
+				line : "",
+				hashdata : "",
+				trailingLines : "",
+				hcont : false,
+				hlast : null,
+				bytesread : 0,
 				
-				// Ensure the email ends with a new line so the last line
-				// is proceesed.
-				if (!input.available() && !endsWith(cs, "\n"))
-					cs += "\n";
-				
-				for (csi = 0; csi < cs.length; csi++) {
-					c = cs.charAt(csi);
-					
-					if (mode == 0 && line == "" && (c == "\t" || c == " "))
-						hcont = true;
-					
-					// Remove folding whitespace
-					if (DK_CAN == "nofws" && (c == "\t" || c == " ")) continue;
-					
-					if (c == "\r") { continue; }
-					if (c != "\n") { line += c; continue; }
-					
-					// We've reached the end of a line
-					
-					var skipLine = false;
-					
-					// If the "h" tag is used, only those header lines (and their
-					// continuation lines if any) added to the "h" tag list are
-					// included.
-					if (mode == 0 && DK_HEADERS != null && line != "") {
-						// What is the header of this line.
-						var header;
-						if (hcont) {
-							header = hlast;
-						} else {
-							var colon = line.indexOf(":");
-							header = line.substring(0, colon).toLowerCase();
-							hlast = header;
-						}
-						
-						if (DK_HEADERS.indexOf(":" + header + ":") == -1) {
-							// skip this header
-							skipLine = true;
-						}
+				onStartRequest: function(request, context) {
+					sha1_incremental_init();
+				},
+				onStopRequest: function(request, context, status) {
+					if (this.bytesread == 0) { // some sort of error
+						return;
 					}
 					
-					line += "\r\n";
+					// If there was data at the end of the email without a newline,
+					// then append it to the yet-to-be-hashed data with a newline character.
+					if (this.line != "")
+						this.hashdata = this.hashdata + this.line + "\r\n";
 					
-					// Trailing empty lines are ignored.  They are added back
-					// the next time we have data.
-					if (line == "\r\n") {
-						skipLine = true;
-						trailingLines += line;
+					if (this.hashdata.length > 0) {
+						sha1_incremental_block(this.hashdata, true);
+						//alert(hashdata);
 					}
 					
-					if (!skipLine) {
-						// We have data, so any lines buffered that might have been trailing
-						// are taken out of the buffer and put into the hashdata.
-						hashdata += trailingLines;
-						trailingLines = "";
+					DKHash = sha1_incremental_end_base64();
+					
+					SPFSendDKQuery(HeloName, IPAddr, FromHdr, EnvFrom != null && EnvFrom != FromHdr ? EnvFrom : null, DKHeader, DKHash, "spfGoFinish()");
+				},
+				
+				onDataAvailable: function(request, context, inputStream, offset, count) {
+					if (this.stream == null) {
+						this.stream = Components.classes["@mozilla.org/binaryinputstream;1"]
+						  .createInstance(Components.interfaces.nsIBinaryInputStream);
+						this.stream.setInputStream(inputStream);
+					}
+					
+					while (this.bytesread < DKHeaderPostPosition && count > 0) {
+						this.bytesread++;
+						count--;
+						this.stream.read8();
+					}
+					if (count == 0) return;
+					
+					if (this.bytesread > 20000) {
+						this.bytesread = 0;
+						statusText.value = "DomainKeys verification will take too long.  Cannot verify sender.";
+						throw "TOOLONG";
+					}
+					
+					var c;
+					var csi;
+					
+					// PARSE THE HEADERS
+					for (csi = 0; csi < count; csi++) {
+						c = String.fromCharCode(this.stream.read8());
+						this.bytesread++;
 
-						if (DK_CAN == "nofws" && mode == 0 && hcont && hashdata.length >= 2) {
-							// Header continuation lines are unwrapped so that header lines are
-							// processed as a single line.  This involves double-backing on
-							// hashdata: removing the last line ending.
-							hashdata = hashdata.substring(0, hashdata.length-2);
-						}
-					
-						hashdata += line;
-					}
+						if (this.mode == 0 && this.line == "" && (c == "\t" || c == " "))
+							this.hcont = true;
 						
-					// Don't feed the hash algorithm in the header section because
-					// with the nofws method, hashdata changes when there are header
-					// continuation lines.  Also, ensure there is data left in hashdata
-					// after this so that it can be used at the very end to close
-					// the hash computation.
-					while (mode == 1 && hashdata.length > (64*12)) {
-						var hasharg = hashdata.substring(0, (64*12));
-						hashdata = hashdata.substring(hasharg.length, hashdata.length);
-						sha1_incremental_block(hasharg, false);
-						//alert(hasharg);
+						// Remove folding whitespace
+						if (DK_CAN == "nofws" && (c == "\t" || c == " ")) continue;
+						
+						if (c == "\r") { continue; }
+						if (c != "\n") { this.line += c; continue; }
+					
+						// We've reached the end of a line
+						
+						var skipLine = false;
+						
+						// If the "h" tag is used, only those header lines (and their
+						// continuation lines if any) added to the "h" tag list are
+						// included.
+						if (this.mode == 0 && DK_HEADERS != null && this.line != "") {
+							// What is the header of this line.
+							var header;
+							if (this.hcont) {
+								header = this.hlast;
+							} else {
+								var colon = this.line.indexOf(":");
+								header = this.line.substring(0, colon).toLowerCase();
+								this.hlast = header;
+							}
+							
+							if (DK_HEADERS.indexOf(":" + header + ":") == -1) {
+								// skip this header
+								skipLine = true;
+							}
+						}
+						
+						this.line += "\r\n";
+						
+						// Trailing empty lines are ignored.  They are added back
+						// the next time we have data.
+						if (this.line == "\r\n") {
+							skipLine = true;
+							this.trailingLines += this.line;
+						}
+						
+						if (!skipLine) {
+							// We have data, so any lines buffered that might have been trailing
+							// are taken out of the buffer and put into the hashdata.
+							this.hashdata += this.trailingLines;
+							this.trailingLines = "";
+	
+							if (DK_CAN == "nofws" && this.mode == 0 && this.hcont && this.hashdata.length >= 2) {
+								// Header continuation lines are unwrapped so that header lines are
+								// processed as a single line.  This involves double-backing on
+								// hashdata: removing the last line ending.
+								this.hashdata = this.hashdata.substring(0, this.hashdata.length-2);
+							}
+						
+							this.hashdata += this.line;
+						}
+							
+						// Don't feed the hash algorithm in the header section because
+						// with the nofws method, hashdata changes when there are header
+						// continuation lines.  Also, ensure there is data left in hashdata
+						// after this so that it can be used at the very end to close
+						// the hash computation.
+						while (this.mode == 1 && this.hashdata.length > (64*12)) {
+							var hasharg = this.hashdata.substring(0, (64*12));
+							this.hashdata = this.hashdata.substring(hasharg.length, this.hashdata.length);
+							sha1_incremental_block(hasharg, false);
+							//alert(hasharg);
+						}
+						
+						// end of headers
+						if (this.mode == 0 && this.line == "\r\n") { this.mode = 1; }
+						
+						this.line = "";
+						this.hcont = false;
 					}
-					
-					// end of headers
-					if (mode == 0 && line == "\r\n") { mode = 1; }
-					
-					line = "";
-					hcont = false;
 				}
 			}
-
-			if (hashdata.length > 0) {
-				sha1_incremental_block(hashdata, true);
-				//alert(hashdata);
+			
+			var uri = GetFirstSelectedMessage();
+			var msgService = messenger.messageServiceFromURI(uri);
+			
+			var async_consumer = Components.classes["@mozilla.org/network/async-stream-listener;1"].createInstance();
+			var async_consumer2 = async_consumer.QueryInterface(Components.interfaces.nsIAsyncStreamListener);
+		
+			async_consumer2.init(dataListener, null);
+		
+			try {
+				msgService.streamMessage(uri, async_consumer, msgWindow, null, false, null)
+				return true;
+			} catch (ex) {
+				statusText.value = ex;
+				return false;
 			}
-			
-			DKHash = sha1_incremental_end_base64();
-			//alert(DKHash);
-			
-			// Close the stream
-			input.close();
 		}
 	}
-
 	
-	// Run the query.
-	
-	SVE_QuerySPF(HeloName, IPAddr,
-		FromHdr, EnvFrom != null && EnvFrom != FromHdr ? EnvFrom : null,
-		DKHash == null ? null : DKHeader, DKHash,
-		"spfGo2()");
-	
-	// Protect all links.  This was an interesting idea, but it's disabled for now.
-	// SVE_ProtectLinks(document.getElementById("messagepane").contentDocument);
+	return false;
 }
 
 function SVE_ProtectLinks(document) {
@@ -659,7 +702,7 @@ function spfGo2() {
 		&& endsWith(EnvFrom, "@" + QueryReturn.domain)) {
 		if (domainTrusted) {
 			QueryReturn2 = QueryReturn;
-			SVE_QuerySPF(HeloName2, IPAddr2, FromHdr, null, null, null, "spfGo3()");
+			SVE_QuerySPF(HeloName2, IPAddr2, FromHdr, null, "spfGo3()");
 			return;
 		} else {
 			QueryReturn.promptToTrust = 1;
@@ -677,8 +720,8 @@ function spfGo3() {
 function spfGoFinish() {
 	// Check for similarly-named domains.  There's no sense in doing this if
 	// the domain is already apparently forged.	
-	if (QueryReturn.result != "fail")
-		SVE_CheckForLookAlikes(SVE_GetDomain(FromHdr));
+	/*if (QueryReturn.result != "fail")
+		SVE_CheckForLookAlikes(SVE_GetDomain(FromHdr));*/
 	
 	// Set up the explanation label.
 	statusLink.style.display = null;
@@ -758,7 +801,7 @@ function spfGoFinish() {
 	}
 }
 
-function SVE_QuerySPF(helo, ip, email_from, email_envelope, dkheader, dkhash, func) {
+function SVE_QuerySPF(helo, ip, email_from, email_envelope, func) {
 	// Query the email from: first.  If that doesn't pass,
 	// then query the email envelope.  If that also doesn't
 	// pass, then go with the result of the from: query.
@@ -801,7 +844,7 @@ function SVE_QuerySPF(helo, ip, email_from, email_envelope, dkheader, dkhash, fu
 				return;
 			
 			if (result.status == "+" || email_envelope == null)
-				SVE_QuerySPF2(result.status, result.message, result.isguess, SVE_GetDomain(email_from), helo, ip, email_from, email_envelope, dkheader, dkhash, func);
+				SVE_QuerySPF2(result.status, result.message, result.isguess, SVE_GetDomain(email_from), helo, ip, email_from, email_envelope, func);
 			else
 				SPF(ip, SVE_GetDomain(email_envelope),
 					function(result2) {
@@ -809,19 +852,18 @@ function SVE_QuerySPF(helo, ip, email_from, email_envelope, dkheader, dkhash, fu
 							return;
 						
 						if (result2.status == "+")
-							SVE_QuerySPF2(result2.status, result2.message, result2.isguess, SVE_GetDomain(email_envelope), helo, ip, email_from, email_envelope, dkheader, dkhash, func);
+							SVE_QuerySPF2(result2.status, result2.message, result2.isguess, SVE_GetDomain(email_envelope), helo, ip, email_from, email_envelope, func);
 						else
-							SVE_QuerySPF2(result.status, result.message, result.isguess, SVE_GetDomain(email_from), helo, ip, email_from, email_envelope,  dkheader, dkhash, func);
+							SVE_QuerySPF2(result.status, result.message, result.isguess, SVE_GetDomain(email_from), helo, ip, email_from, email_envelope, func);
 					});
 		});
 }
 
-function SVE_QuerySPF2(result, message, isguess, domain, helo, ip, email_from, email_envelope, dkheader, dkhash, func) {
+function SVE_QuerySPF2(result, message, isguess, domain, helo, ip, email_from, email_envelope, func) {
 	// If the SPF test didn't pass, and if there is DK information,
 	// then send a query to the query server.
-	if (result != "+" && dkheader != null && dkhash != null) {
-		SPFSendQuery(helo, ip, email_from, email_envelope, dkheader, dkhash, func);
-		return;
+	if (result != "+" && DKHeader != null) {
+		if (SVE_TryDK()) return;
 	}
 	
 	if (result == "+") result = "pass";
@@ -845,7 +887,7 @@ function SVE_GetDomain(emailaddress) {
 	return emailaddress.substr(at+1);
 }
 
-function SPFSendQuery(helo, ip, email_from, email_envelope, dkheader, dkhash, func) {
+function SPFSendDKQuery(helo, ip, email_from, email_envelope, dkheader, dkhash, func) {
 	// Prepare the URL of the query.
 	
 	var url = serverurl;
