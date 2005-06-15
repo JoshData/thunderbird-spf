@@ -133,7 +133,7 @@ function sveRearrangeBoxes() {
 function spfGo(manual) {
 	// Prevent two load events on the same email.
 	var uri = GetFirstSelectedMessage();
-	if (uri == lastCheckedEmail) return;
+	if (uri == lastCheckedEmail && !manual) return;
 	lastCheckedEmail = uri;
 
 	spfLoadSettings();
@@ -427,7 +427,7 @@ function SVE_TryDK() {
 	var c;
 	
 	// Interpret the DK header
-	if (FromHdr != null && DKHeader != null && DKHeader != "" && usedk != "no") {
+	if (FromHdr != null && DKHeader != null && DKHeader != "") {
 		mode = 0;
 		h = "";
 		var v;
@@ -747,6 +747,9 @@ function spfGoFinish() {
 	
 	// Show the user the result of the query.
 	
+	if ((QueryReturn.result == "none" || QueryReturn.result == "neutral") && QueryReturn.couldTryDK)
+		QueryReturn.result = "neutraltrydk";
+	
 	switch (QueryReturn.result) {
 		case "pass":
 			if (endsWith(FromHdr, "@" + QueryReturn.domain)) {
@@ -783,6 +786,9 @@ function spfGoFinish() {
 		case "neutral":
 			statusText.value = "Sender cannot be verified by domain.  (Address could be forged.)";
 			statusText.style.color = "blue";
+			break;
+		case "neutraltrydk":
+			statusText.value = "Sender cannot be verified without DomainKeys.  (Enable in Extension Options.)";
 			break;
 		case "spamming":
 		case "phishing":
@@ -862,8 +868,13 @@ function SVE_QuerySPF(helo, ip, email_from, email_envelope, func) {
 function SVE_QuerySPF2(result, message, isguess, domain, helo, ip, email_from, email_envelope, func) {
 	// If the SPF test didn't pass, and if there is DK information,
 	// then send a query to the query server.
+	var couldTryDK = false;
 	if (result != "+" && DKHeader != null) {
-		if (SVE_TryDK()) return;
+		if (usedk != "no") {
+			if (SVE_TryDK()) return;
+		} else {
+			couldTryDK = true;
+		}
 	}
 	
 	if (result == "+") result = "pass";
@@ -878,6 +889,7 @@ function SVE_QuerySPF2(result, message, isguess, domain, helo, ip, email_from, e
 	QueryReturn.comment = message;
 	QueryReturn.domain = domain;
 	QueryReturn.method = "spf";
+	QueryReturn.couldTryDK = couldTryDK;
 	setTimeout(func, 1);
 }
 

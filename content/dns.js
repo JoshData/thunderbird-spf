@@ -433,7 +433,7 @@ function DNS_readAllFromSocket(host,port,outputData,listener)
         createInstance(Components.interfaces.nsIInputStreamPump);
     pump.init(stream, -1, -1, 0, 0, false);
     pump.asyncRead(dataListener,null);
-  } catch (ex){
+  } catch (ex) {
     return ex;
   }
   return null;
