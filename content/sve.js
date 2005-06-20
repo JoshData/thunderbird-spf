@@ -20,7 +20,7 @@ var useragent = "sve:0.7"; // The useragent field sent to the query server
 var ReturnPathRegEx = /^Return-Path: <([^>]+)>/;
 var ReceivedRegEx = /^Received: from ([\w\W]+) \([\w\W]*\[([\d\.]+)\]/; // The sendmail-style Received: header.
 var ReceivedRegEx2 = /^Received: from \[([\d\.]+)\] \([\w\W]*helo=([^)]+)\)/; // An apparently Exim-style header: Received: from [65.54.185.19] (...helo=hotmail.com)
-var ReceivedRegEx3 = /^Received: from ([\w\.]+) \(([\d\.]+)\)/; // Yet another format
+var ReceivedRegEx3 = /^Received: from ([\w\.\-\_]+) \(([\d\.]+)\)/; // Yet another format
 var ReceivedRegEx4 = /^Received: from [\w\W]+\((EHLO|HELO) ([\w\.]+)\) \(([\d\.]+)\)/; // Yet another format
 var FromRegEx = /^From: [^<]*<([^>]+)>|^From: ([\w\d\._-]+@[\w\d\._-]+)/i;	
 var DateRegEx = /^Date: ([\w\W]+)/i;
@@ -354,7 +354,7 @@ function spfGo(manual) {
 			
 			if (endofheaders) {
 				spfGo1();
-				throw "ENDOFHEADERS";
+				throw "ENDOFHEADERS"; // abort reading the message since we don't need any more of it
 			}
 		}
     };
@@ -834,7 +834,10 @@ function SVE_QuerySPF(helo, ip, email_from, email_envelope, func) {
 	// If no SPF result is available in 5 seconds, this is
 	// probably because DNS is taking a long time, or
 	// some server is only taking UDP requests.  The user
-	// should set his DNS option.
+	// should set his DNS option, if he hasn't already done so.
+	var hasDNSSetting = prefs.getPrefType("dns.nameserver") == prefs.PREF_STRING
+		&& prefs.getCharPref("dns.nameserver") != null && prefs.getCharPref("dns.nameserver") != "";
+	if (!hasDNSSetting)
 	setTimeout(
 		function() {
 			if (gotInfo.got) return;
@@ -845,6 +848,7 @@ function SVE_QuerySPF(helo, ip, email_from, email_envelope, func) {
 	SPF(ip, SVE_GetDomain(email_from),
 		function(result) {
 			gotInfo.got = true;
+			SVE_Debug("SVE SPF: " + ip + " " + email_from + " => " + result.status + " (" + result.message + ")"); 
 			
 			if (curMessage != GetFirstSelectedMessage())
 				return;
@@ -857,6 +861,7 @@ function SVE_QuerySPF(helo, ip, email_from, email_envelope, func) {
 						if (curMessage != GetFirstSelectedMessage())
 							return;
 						
+						SVE_Debug("SVE SPF: " + ip + " " + email_envelope + " => " + result2.status + " (" + result2.message + ")");
 						if (result2.status == "+")
 							SVE_QuerySPF2(result2.status, result2.message, result2.isguess, SVE_GetDomain(email_envelope), helo, ip, email_from, email_envelope, func);
 						else
@@ -1091,4 +1096,8 @@ function endsWith(a, b) {
 	return a.substring(a.length-b.length) == b;
 }
 
+function SVE_Debug(message) {
+	var consoleService = Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService);
+	consoleService.logStringMessage(message);
+}
 
