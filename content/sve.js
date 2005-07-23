@@ -21,8 +21,8 @@ var ReturnPathRegEx = /^Return-Path: <([^>]+)>/;
 var ReceivedRegEx = /^Received: from ([\w\W]+) \([\w\W]*\[([\d\.]+)\]/; // The sendmail-style Received: header.
 var ReceivedRegEx2 = /^Received: from \[([\d\.]+)\] \([\w\W]*helo=([^)]+)\)/; // An apparently Exim-style header: Received: from [65.54.185.19] (...helo=hotmail.com)
 var ReceivedRegEx3 = /^Received: from ([\w\.\-\_]+) \(([\d\.]+)\)/; // Yet another format
-var ReceivedRegEx4 = /^Received: from [\w\W]+\((EHLO|HELO) ([\w\.]+)\) \(([\d\.]+)\)/; // Yet another format
-var FromRegEx = /^From: [^<]*<([^>]+)>|^From: ([\w\d\._-]+@[\w\d\._-]+)/i;	
+var ReceivedRegEx4 = /^Received: from [\w\W]+\((EHLO|HELO) ([\w\.\_\-]+)\) \(([\d\.]+)\)/; // Yet another format
+var FromRegEx = /^From: [^<]*<([^>]+)>|^From: ([\w\d\._\-]+@[\w\d\.\_\-]+)/i;	
 var DateRegEx = /^Date: ([\w\W]+)/i;
 
 // MISC
@@ -354,7 +354,7 @@ function spfGo(manual) {
 			
 			if (endofheaders) {
 				spfGo1();
-				throw "ENDOFHEADERS"; // abort reading the message since we don't need any more of it
+				throw "IGNORE_THIS__NOT_A_REAL_PROBLEM"; // abort reading the message since we don't need any more of it
 			}
 		}
     };
@@ -788,7 +788,7 @@ function spfGoFinish() {
 			statusText.style.color = "blue";
 			break;
 		case "neutraltrydk":
-			statusText.value = "Sender cannot be verified without DomainKeys.  (Enable in Extension Options.)";
+			statusText.value = "DomainKeys not checked; address could be forged. (Enable DK in Extension Options.)";
 			break;
 		case "spamming":
 		case "phishing":
