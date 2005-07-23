@@ -374,7 +374,7 @@ function spfGo(manual) {
 }
 
 function spfGo1() {
-	if (SVE_GetDomain(FromHdr) == null) FromHdr = null;
+	if (FromHdr != null && SVE_GetDomain(FromHdr) == null) FromHdr = null;
 	if (EnvFrom != null && SVE_GetDomain(EnvFrom) == null) EnvFrom = null;
 	
 	// What if there is no From: header

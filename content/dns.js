@@ -5,6 +5,13 @@
  *
  * Feel free to use this file however you want, but
  * credit would be nice.
+ *
+ * A major limitation of this library is that Mozilla
+ * only provides TCP sockets, and DNS servers sometimes
+ * only respond on UDP.  To get around this, you can set
+ * the profile option "dns.nameserver" to the hostname or
+ * IP of your own ISP's nameserver that your computer
+ * normally uses, which should respond on TCP.
  */
 
 var DNS_ROOT_NAME_SERVER = "J.ROOT-SERVERS.NET";
@@ -55,9 +62,8 @@ function DNS_Test() {
 		} );
 }
 
-//queryDNS("www.for.net", "A", function(data) { alert(data); } );
-//queryDNS("yy.for.net", "A", function(data) { alert(data); } );
-//queryDNS("www.gmail.com", "A", function(data) { alert(data); } );
+//queryDNS("www.example.com", "A", function(data) { alert(data); } );
+//reverseDNS("123.456.789.123", function(addrs) { for (var i = 0; i < addrs.length; i++) { alert(addrs[i]); } } );
 
 // queryDNS: This is the main entry point for external callers.
 function queryDNS(host, recordtype, callback, callbackdata) {
@@ -87,18 +93,21 @@ function reverseDNS(ip, callback, callbackdata) {
 			// No reverse DNS info available.
 			if (hostnames == null) { callback(null, callbackdata); return; }
 			
-			var ret = Array(0);
-			var retctr = 0;
-			var resolvectr = 0;
+			var obj = new Object();
+			obj.ret = Array(0);
+			obj.retctr = 0;
+			obj.resolvectr = 0;
 			
 			var i;
 			
 			// Check that each one resolves forward.
 			for (i = 0; i < hostnames.length; i++) {
-				var curhostname = hostnames[i];
+				var o2 = new Object();
+				o2.retobj = obj;
+				o2.curhostname = hostnames[i];
 				
 				queryDNS(hostnames[i], "A",
-				function(arecs) {
+				function(arecs, cb) {
 					if (arecs != null) {
 						var j;
 						var matched = false;
@@ -108,21 +117,21 @@ function reverseDNS(ip, callback, callbackdata) {
 					}
 					
 					if (matched)
-						ret[retctr++] = curhostname;
+						cb.retobj.ret[cb.retobj.retctr++] = cb.curhostname;
 					
-					if (++resolvectr == hostnames.length) {
-						if (retctr == 0)
+					if (++cb.retobj.resolvectr == hostnames.length) {
+						if (cb.retobj.retctr == 0)
 							callback(null, callbackdata);
 						else
-							callback(ret, callbackdata);
+							callback(cb.retobj.ret, callbackdata);
 					}
-				});
+				}, o2);
 			}
 		});
 }
 
 function DNS_ReverseIPHostname(ip) {
-	var q = ip.split(".");  // The "1*" forces the first term to be numeric
+	var q = ip.split(".");
 	return q[3] + "." + q[2] + "." + q[1] + "." + q[0] + ".in-addr.arpa";
 }
 

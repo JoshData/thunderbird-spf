@@ -21,8 +21,9 @@ chrome/spf.jar: $(JARSOURCES)
 
 package: spf.xpi chrome/spf.jar
 	tar -C .. -czf archive/thunderbird-spf-`date +%F`.tgz \
+		 --exclude thunderbird-spf/content/.svn \
 		thunderbird-spf/chrome \
-		thunderbird-spf/content --exclude thunderbird-spf/content/.svn \
+		thunderbird-spf/content \
 		thunderbird-spf/install.js \
 		thunderbird-spf/install.rdf \
 		thunderbird-spf/Makefile \

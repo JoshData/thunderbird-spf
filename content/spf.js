@@ -18,6 +18,7 @@ var spfConsoleService = Components.classes["@mozilla.org/consoleservice;1"].getS
 
 //SPF("68.167.112.147", "for.net", function(result) { alert(result.message); });
 //SPF("130.94.251.12", "craigslist.org", function(result) { alert(result.message); });
+//SPF("64.4.240.67", "paypal.com", function(result) { alert(result.message); });
 
 function SPF(ip, domain, callback) {
 	SPF_Debug("Begin SPF Test on " + ip + " for " + domain);
