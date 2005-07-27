@@ -21,7 +21,7 @@ var ReturnPathRegEx = /^Return-Path: <([^>]+)>/;
 var ReceivedRegEx = /^Received: from ([\w\W]+) \([\w\W]*\[([\d\.]+)\]/; // The sendmail-style Received: header.
 var ReceivedRegEx2 = /^Received: from \[([\d\.]+)\] \([\w\W]*helo=([^)]+)\)/; // An apparently Exim-style header: Received: from [65.54.185.19] (...helo=hotmail.com)
 var ReceivedRegEx3 = /^Received: from ([\w\.\-\_]+) \(([\d\.]+)\)/; // Yet another format
-var ReceivedRegEx4 = /^Received: from [\w\W]+\((EHLO|HELO) ([\w\.\_\-]+)\) \(([\d\.]+)\)/; // Yet another format
+var ReceivedRegEx4 = /^Received: from [\w\W]+\((EHLO|HELO) ([^)]+)\) \(([\d\.]+)\)/; // Yet another format
 var FromRegEx = /^From: [^<]*<([^>]+)>|^From: ([\w\d\._\-]+@[\w\d\.\_\-]+)/i;	
 var DateRegEx = /^Date: ([\w\W]+)/i;
 
