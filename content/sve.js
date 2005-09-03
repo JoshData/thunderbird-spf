@@ -55,6 +55,8 @@ var IPAddr = null;
 var HeloName2 = null;
 var IPAddr2 = null;
 
+var IsViaMailList = null;
+
 var DKHeader = null;
 var DKHeaderPostPosition = null;
 var DKHash = null;
@@ -210,6 +212,8 @@ function spfGo(manual) {
 	HeloName2 = null;
 	IPAddr2 = null;
 	
+	IsViaMailList = false;
+	
 	DKHeader = null;
 	DKHash = null;
 	
@@ -347,6 +351,10 @@ function spfGo(manual) {
 					this.hlast = "DK";
 					DKHeaderPostPosition = this.bytesread; // message hash starts from this position
 				}
+				
+				if (startsWith(this.h, "List-Id: ")) {
+					IsViaMailList = true;
+				}
 		
 				this.h = "";
 				this.hcont = false;
@@ -374,6 +382,13 @@ function spfGo(manual) {
 }
 
 function spfGo1() {
+	if (IsViaMailList) {
+		// If this is a mail list email, don't bother trying to check the FromAddress
+		// since SPF will certainly fail, and DK will probably fail since messages
+		// are usually appended with a mail list footer.
+		FromHdr = EnvFrom;
+	}
+	
 	if (FromHdr != null && SVE_GetDomain(FromHdr) == null) FromHdr = null;
 	if (EnvFrom != null && SVE_GetDomain(EnvFrom) == null) EnvFrom = null;
 	
@@ -407,7 +422,7 @@ function spfGo1() {
 	// When there aren't any matching Recevied: headers, the mail probably started
 	// on the mail server itself.  Is this a security problem?
 	if (!HeloName || !IPAddr) {
-		statusText.value = "Mail appears to originate from your mail server.";
+		statusText.value = "Mail originates from your mail server, or message headers could not be understood.";
 		return;
 	}
 
@@ -471,7 +486,7 @@ function SVE_TryDK() {
 		}
 		
 		// Check that required tags are present, and if so compute the email hash
-		if (DK_SIG != null && (DK_CAN == "simple" || DK_CAN == "nofws") && DK_DOMAIN != null && DK_QMETHOD != null && DK_SELECTOR != null && (endsWith(FromHdr, "@" + DK_DOMAIN) || endsWith(FromHdr, "." + DK_DOMAIN))) {
+		if (DK_SIG != null && (DK_CAN == "simple" || DK_CAN == "nofws") && DK_DOMAIN != null && DK_QMETHOD != null && DK_SELECTOR != null) {
 			statusText.value = "Computing DomainKeys signature...";
 	
 			var dataListener = {
@@ -750,6 +765,7 @@ function spfGoFinish() {
 	if ((QueryReturn.result == "none" || QueryReturn.result == "neutral") && QueryReturn.couldTryDK)
 		QueryReturn.result = "neutraltrydk";
 	
+	if (!IsViaMailList)
 	switch (QueryReturn.result) {
 		case "pass":
 			if (endsWith(FromHdr, "@" + QueryReturn.domain)) {
@@ -799,6 +815,19 @@ function spfGoFinish() {
 		default:
 			statusText.value = "Error: " + QueryReturn.comment;
 			statusText.style.color = "red";
+			break;
+	}
+
+	if (IsViaMailList)
+	switch (QueryReturn.result) {
+		case "pass":
+			statusText.value = "Message is from a <" + QueryReturn.domain + "> mail list.";
+			statusText.style.color = null;
+			statusLink.value = "The original sender of mail-list email cannot be verified.";
+			break;
+		default:
+			statusText.value = "Mail list domain could not be verified or does not support verification.";
+			statusText.style.color = "blue";
 			break;
 	}
 	
@@ -950,7 +979,7 @@ function SPFSendDKQuery(helo, ip, email_from, email_envelope, dkheader, dkhash, 
 
 	var curMessage = GetFirstSelectedMessage();
 	
-	statusText.value = "Contacting verification server...";
+	statusText.value = "Contacting DomainKeys verification server...";
 	
 	xmlhttp.open("GET", url, true);
 	xmlhttp.onerror=function() {
@@ -1088,10 +1117,12 @@ function MyUrlListener() {
 }
 
 function startsWith(a, b) {
+	if (a == null || b == null) return false;
 	if (b.length > a.length) return false;
 	return a.substring(0, b.length) == b;
 }
 function endsWith(a, b) {
+	if (a == null || b == null) return false;
 	if (b.length > a.length) return false;
 	return a.substring(a.length-b.length) == b;
 }

@@ -16,7 +16,7 @@
 		<em:optionsURL>chrome://spf/content/options.xul</em:optionsURL>
 	
 		<em:file>
-			<Description about="urn:mozilla:extension:file:spf.jar">
+			<Description about="urn:mozilla:extension:file:sve.jar">
 				<em:package>content/</em:package>
 			</Description>
 		</em:file>

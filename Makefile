@@ -8,19 +8,19 @@ JARSOURCES=\
 XPISOURCES=\
 	install.rdf \
 	install.js \
-	chrome/spf.jar
+	chrome/sve.jar
 
-all: spf.xpi package
+all: sve.xpi package
 
-spf.xpi: $(XPISOURCES)
-	zip -q spf.xpi $(XPISOURCES)
+sve.xpi: $(XPISOURCES)
+	zip -q sve.xpi $(XPISOURCES)
 
-chrome/spf.jar: $(JARSOURCES)
+chrome/sve.jar: $(JARSOURCES)
 	mkdir -p chrome
-	zip -q chrome/spf.jar $(JARSOURCES)
+	zip -q chrome/sve.jar $(JARSOURCES)
 
-package: spf.xpi chrome/spf.jar
-	tar -C .. -czf archive/thunderbird-spf-`date +%F`.tgz \
+package: sve.xpi chrome/sve.jar
+	tar -C .. -czf archive/thunderbird-sve-`date +%F`.tgz \
 		 --exclude thunderbird-spf/content/.svn \
 		thunderbird-spf/chrome \
 		thunderbird-spf/content \
@@ -29,11 +29,11 @@ package: spf.xpi chrome/spf.jar
 		thunderbird-spf/Makefile \
 		thunderbird-spf/query.cgi \
 		thunderbird-spf/README \
-		thunderbird-spf/spf.xpi
-	ln -sf thunderbird-spf-`date +%F`.tgz archive/thunderbird-spf.tgz
+		thunderbird-spf/sve.xpi
+	ln -sf thunderbird-sve-`date +%F`.tgz archive/thunderbird-sve.tgz
 
-cheapupdate: chrome/spf.jar
-	cp chrome/spf.jar ~/.thunderbird/default/*/extensions/\{ff7e40e0-08b4-11d9-9669-0800200c9a66\}/chrome/spf.jar
+cheapupdate: chrome/sve.jar
+	cp chrome/sve.jar ~/.thunderbird/default/*/extensions/\{ff7e40e0-08b4-11d9-9669-0800200c9a66\}/chrome/sve.jar
 
 deploy: package
-	scp spf.xpi archive/thunderbird-spf.tgz publius:www/code/spf
+	scp sve.xpi archive/thunderbird-sve.tgz publius:www/code/spf
