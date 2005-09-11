@@ -821,13 +821,14 @@ function spfGoFinish() {
 	if (IsViaMailList)
 	switch (QueryReturn.result) {
 		case "pass":
-			statusText.value = "Message is from a <" + QueryReturn.domain + "> mail list.";
+			statusText.value = "Message is verified from a <" + QueryReturn.domain + "> mail list.";
 			statusText.style.color = null;
 			statusLink.value = "The original sender of mail-list email cannot be verified.";
 			break;
 		default:
 			statusText.value = "Mail list domain could not be verified or does not support verification.";
 			statusText.style.color = "blue";
+			statusLink.value = "No sender information could be verified.";
 			break;
 	}
 	
