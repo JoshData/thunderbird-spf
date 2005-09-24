@@ -331,8 +331,8 @@ function DNS_getRDData(str, callback, authorityCallback, callbackdata, server) {
 	
 	// sanity checks
 	if (qcount > 1) qcount = 1;
-	if (ancount > 16) ancount = 16;
-	if (aucount > 16) aucount = 16;
+	if (ancount > 64) ancount = 64;
+	if (aucount > 64) aucount = 64;
 	
 	for (i = 0; i < qcount; i++) {
 		dom = DNS_readDomain(ctx);
