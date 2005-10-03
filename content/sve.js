@@ -34,8 +34,6 @@ var DAYS_IN_THE_FUTURE = 1.1; // THIS MANY DAYS IN THE FUTURE => NO SPF CHECK
 
 // PREFERENCES
 
-var prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
-
 var serverurl = "";
 var checkonload = "";
 var usedk = "";
@@ -83,6 +81,8 @@ messagepane.addEventListener("load", sveRearrangeBoxes, true);
 messagepane.addEventListener("load", spfGoEvent, true);
 
 function spfLoadSettings() {
+	var prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
+
 	serverurl = "http://taubz.for.net/code/spf/cgi-bin/query.cgi";
 	if (prefs.getPrefType("spf.queryserver") == prefs.PREF_STRING) {
 		if (prefs.getCharPref("spf.queryserver") != "")
@@ -218,6 +218,7 @@ function spfGo(manual) {
 	DKHash = null;
 	
     var msgService = messenger.messageServiceFromURI(uri);
+	var prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
 	
     var dataListener = {
 		stream : null,
@@ -706,6 +707,7 @@ function SVE_ProtectLink(a) {
 }
 
 function spfGo2() {	
+	var prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
 	var prefname = "spf.forwarder." + QueryReturn.domain;
 	var domainTrusted = (prefs.getPrefType(prefname) == prefs.PREF_STRING && prefs.getCharPref(prefname) == "trust");
 
@@ -804,7 +806,7 @@ function spfGoFinish() {
 			statusText.style.color = "blue";
 			break;
 		case "neutraltrydk":
-			statusText.value = "DomainKeys not checked; address could be forged. (Enable DK in Extension Options.)";
+			statusText.value = "DomainKeys not checked; address could be forged. (Enable DomainKeys in Tools->Extension->Options)";
 			break;
 		case "spamming":
 		case "phishing":
@@ -865,6 +867,7 @@ function SVE_QuerySPF(helo, ip, email_from, email_envelope, func) {
 	// probably because DNS is taking a long time, or
 	// some server is only taking UDP requests.  The user
 	// should set his DNS option, if he hasn't already done so.
+	var prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
 	var hasDNSSetting = prefs.getPrefType("dns.nameserver") == prefs.PREF_STRING
 		&& prefs.getCharPref("dns.nameserver") != null && prefs.getCharPref("dns.nameserver") != "";
 	if (!hasDNSSetting)
@@ -1022,6 +1025,7 @@ function SPFSendQuery2(func, queryObj) {
 		
 		if (e.nodeName == "change-server") {
 			if (confirm("Your current query server requests that you begin using the query server at <" + e.textContent + ">.  The request is most likely to ease the load placed on the current server.  Is this switch okay?")) {
+				var prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
 				prefs.setCharPref("spf.queryserver", e.textContent);
 			}
 		}
