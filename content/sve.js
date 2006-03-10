@@ -22,6 +22,7 @@ var ReceivedRegEx = /^Received: from ([\w\W]+) \([\w\W]*\[([\d\.]+)\]/; // The s
 var ReceivedRegEx2 = /^Received: from \[([\d\.]+)\] \([\w\W]*helo=([^)]+)\)/; // An apparently Exim-style header: Received: from [65.54.185.19] (...helo=hotmail.com)
 var ReceivedRegEx3 = /^Received: from ([\w\.\-\_]+) \(([\d\.]+)\)/; // Yet another format
 var ReceivedRegEx4 = /^Received: from [\w\W]+\((EHLO|HELO) ([^)]+)\) \(([\d\.]+)\)/; // Yet another format
+var ReceivedRegEx5 = /^Received: from \s*\[([\d\.]+)\] [\w\W]*\(EHLO ([^)]+)\)/; // ArGoSoft Mail Server Pro
 var FromRegEx = /^From: [^<]*<([^>]+)>|^From: ([\w\d\._\-]+@[\w\d\.\_\-]+)/i;	
 var DateRegEx = /^Date: ([\w\W]+)/i;
 
@@ -38,6 +39,7 @@ var serverurl = "";
 var checkonload = "";
 var usedk = "";
 var warnunverified;
+var onlystatusbar;
 
 // GLOBAL VARIABLES
 // Yes it's a bad way to program, but it seems necessary in order
@@ -68,6 +70,7 @@ var statusLink;
 var statusTrust;
 var goMenu;
 var goMenuSep;
+var statusLittleBox;
 
 var QueryCache = Array(0);
 var QueryCacheNext = 0;
@@ -106,6 +109,11 @@ function spfLoadSettings() {
 		warnunverified = true;
 	}
 	
+	onlystatusbar = false;
+	if (prefs.getPrefType("spf.onlystatusbar") == prefs.PREF_STRING
+		&& prefs.getCharPref("spf.onlystatusbar") == "yes") {
+		onlystatusbar = true;
+	}
 }
 
 function spfGoEvent() {
@@ -147,6 +155,7 @@ function spfGo(manual) {
 	goMenuSep = document.getElementById("spf_GoMenuSeparator");	
 	statusLink = document.getElementById("spfLink");
 	statusTrust = document.getElementById("spfTrust");
+	statusLittleBox = document.getElementById("statusTextSVE");
 	
 	var spfDomainWarning = document.getElementById("spfDomainWarning");
 	spfDomainWarning.style.display = "none";
@@ -165,6 +174,10 @@ function spfGo(manual) {
 		goMenu.hidden = true;
 		goMenuSep.hidden = true;
 	}
+	
+	statusLittleBox.style.display = "none";
+	statusLittleBox.onclick = null;
+	statusLittleBox.style.color = null;
 
 	// If no message is being read, bail out.
 	
@@ -185,12 +198,15 @@ function spfGo(manual) {
 	if (checkonload == "no" && !manual) {
 		goMenu.hidden = false;
 		goMenuSep.hidden = false;
-		statusText.value = "Click on Verify Sender (SPF/DK) from the Tools menu.";
+		statusText.value = "Click on Verify Sender (SPF/DK) from the Tools menu."; // not visible...
 		return;
 	}
 
-	spfBox.style.display = null;
-
+	if (!onlystatusbar)
+		spfBox.style.display = null;
+	else
+		statusLittleBox.style.display = null;
+	
 	// Check that a query server has been set up.  If not, display an error.
 	
 	if (!serverurl) {
@@ -201,6 +217,7 @@ function spfGo(manual) {
 	// Load the message service, and scan the message headers.
 
 	statusText.value = "Scanning message headers...";
+	statusLittleBox.label = "SVE: Scanning...";
 	
 	FromHdr = null;
 	EnvFrom = null;
@@ -277,6 +294,7 @@ function spfGo(manual) {
 				m = ReturnPathRegEx.exec(this.h);
 				if (m) { EnvFrom = m[1].toLowerCase(); }
 				
+				// TODO: What if the From address is split onto two lines.....
 				m = FromRegEx.exec(this.h);
 				if (m) {
 					FromHdr = m[1];
@@ -301,7 +319,10 @@ function spfGo(manual) {
 		
 				m = ReceivedRegEx4.exec(this.h);
 				if (m) { he = m[2]; ip = m[3]; }
-		
+
+				m = ReceivedRegEx5.exec(this.h);
+				if (m) { ip = m[1]; he = m[2]; }
+
 				if (he != null && ip != null) {
 					var internal = 0;
 					// TODO: check the fourth range: 172.16.0.0-172.31.255.255
@@ -377,6 +398,7 @@ function spfGo(manual) {
 		msgService.streamMessage(uri, async_consumer, msgWindow, null, false, null)
 	} catch (ex) {
 		statusText.value = "Sender verification is not applicable for this message.";
+		statusLittleBox.label = "SVE: Not Applicable";
 		return;
 	}
 	
@@ -397,6 +419,7 @@ function spfGo1() {
 	if (!FromHdr) {
 		statusText.value = "Cannot determine sender address from mail message.";
 		statusText.style.color = "blue";
+		statusLittleBox.label = "SVE: Not Applicable";
 		return;
 	}
 	
@@ -411,12 +434,14 @@ function spfGo1() {
 	// (confusingly) been legitimate at the time.
 	if (DateHdr != null && new Date().getTime() - DateHdr > 1000*60*60*24*DAYS_TOO_OLD) {
 		statusText.value = "Message is too old to verify sender.";
+		statusLittleBox.label = "SVE: Not Applicable";
 		return;
 	}
 	
 	// For completeness, if a message was sent too far in the future, flag a problem.
 	if (DateHdr != null && DateHdr - new Date().getTime() > 1000*60*60*24*DAYS_IN_THE_FUTURE) {
 		statusText.value = "Message date is in the future.  Sender verification skipped.";
+		statusLittleBox.label = "SVE: Not Applicable";
 		return;
 	}
 	
@@ -424,6 +449,7 @@ function spfGo1() {
 	// on the mail server itself.  Is this a security problem?
 	if (!HeloName || !IPAddr) {
 		statusText.value = "Mail originates from your mail server, or message headers could not be understood.";
+		statusLittleBox.label = "SVE: Not Applicable";
 		return;
 	}
 
@@ -489,6 +515,7 @@ function SVE_TryDK() {
 		// Check that required tags are present, and if so compute the email hash
 		if (DK_SIG != null && (DK_CAN == "simple" || DK_CAN == "nofws") && DK_DOMAIN != null && DK_QMETHOD != null && DK_SELECTOR != null) {
 			statusText.value = "Computing DomainKeys signature...";
+			statusLittleBox.label = "SVE: Checking DK...";
 	
 			var dataListener = {
 				stream : null,
@@ -540,6 +567,7 @@ function SVE_TryDK() {
 					if (this.bytesread > 20000) {
 						this.bytesread = 0;
 						statusText.value = "DomainKeys verification will take too long.  Cannot verify sender.";
+						statusLittleBox.label = "SVE: DK Aborted";
 						throw "TOOLONG";
 					}
 					
@@ -643,6 +671,7 @@ function SVE_TryDK() {
 				return true;
 			} catch (ex) {
 				statusText.value = ex;
+				statusLittleBox.label = "SVE: Error";
 				return false;
 			}
 		}
@@ -773,9 +802,13 @@ function spfGoFinish() {
 			if (endsWith(FromHdr, "@" + QueryReturn.domain)) {
 				statusText.value = "Sending Domain <" + QueryReturn.domain + "> Verified";
 				statusText.style.color = null;
+				statusLittleBox.label = "SVE: Domain Verified";
+				statusLittleBox.style.color = "blue";
 			} else {
-				statusText.value = "From: address could not be verified. Verified envelope domain: <" + QueryReturn.domain + ">";
+				statusText.value = "\"From\" address could not be verified. Verified envelope domain: <" + QueryReturn.domain + ">";
 				statusText.style.color = "red";
+				statusLittleBox.label = "SVE: Real Domain: " + QueryReturn.domain;
+				statusLittleBox.style.color = "red";
 
 				if (QueryReturn.promptToTrust) {
 					statusTrust.style.display = null;
@@ -796,27 +829,39 @@ function spfGoFinish() {
 		case "fail":
 			statusText.value = "This does not appear to be a legitimate <" + QueryReturn.domain + "> email.";
 			statusText.style.color = "red";
+			statusLittleBox.label = "SVE: Verification Failed";
+			statusLittleBox.style.color = "red";
 			break;
 		case "none":
 			statusText.value = "Sending domain does not support verification.  (Address could be forged.)";
 			statusText.style.color = "blue";
+			statusLittleBox.label = "SVE: Not Verified";
+			statusLittleBox.style.color = "red";
 			break;
 		case "neutral":
 			statusText.value = "Sender cannot be verified by domain.  (Address could be forged.)";
 			statusText.style.color = "blue";
+			statusLittleBox.label = "SVE: Not Verified";
+			statusLittleBox.style.color = "red";
 			break;
 		case "neutraltrydk":
 			statusText.value = "DomainKeys not checked; address could be forged. (Enable DomainKeys in Tools->Extension->Options)";
+			statusLittleBox.label = "SVE: Not Verified";
+			statusLittleBox.style.color = "red";
 			break;
 		case "spamming":
 		case "phishing":
 			statusText.value = QueryReturn.comment;
 			statusText.style.color = "red";
 			statusLink.value = "This is reported by www.surbl.org.";
+			statusLittleBox.label = "SVE: Probable Phishing";
+			statusLittleBox.style.color = "red";
 			break;
 		default:
 			statusText.value = "Error: " + QueryReturn.comment;
 			statusText.style.color = "red";
+			statusLittleBox.label = "SVE: Error";
+			statusLittleBox.style.color = "red";
 			break;
 	}
 
@@ -826,11 +871,15 @@ function spfGoFinish() {
 			statusText.value = "Message is verified from a <" + QueryReturn.domain + "> mail list.";
 			statusText.style.color = null;
 			statusLink.value = "The original sender of mail-list email cannot be verified.";
+			statusLittleBox.label = "SVE: Mail List Verified: " + QueryReturn.domain;
+			statusLittleBox.style.color = "blue";
 			break;
 		default:
 			statusText.value = "Mail list domain could not be verified or does not support verification.";
 			statusText.style.color = "blue";
 			statusLink.value = "No sender information could be verified.";
+			statusLittleBox.label = "SVE: Not Verified";
+			statusLittleBox.style.color = "red";
 			break;
 	}
 	
@@ -845,6 +894,7 @@ function SVE_QuerySPF(helo, ip, email_from, email_envelope, func) {
 	// pass, then go with the result of the from: query.
 	
 	statusText.value = "Performing SPF verification...";
+	statusLittleBox.label = "SVE: Checking SPF...";
 	
 	// Check mailpolice's fraud list.
 	queryDNS(
@@ -989,6 +1039,7 @@ function SPFSendDKQuery(helo, ip, email_from, email_envelope, dkheader, dkhash, 
 	xmlhttp.onerror=function() {
 		statusText.value = "Error verifying sender: " + xmlhttp.statusText;
 		statusText.style.color = "blue";
+		statusLittleBox.label = "SVE: Error";
 	};
 	xmlhttp.onload = function() {
 		if (GetFirstSelectedMessage() != curMessage) return;
@@ -1003,6 +1054,7 @@ function SPFSendQuery2(func, queryObj) {
 	if (xmlhttp.responseXML == null) {
 		statusText.value = "There was a server error.";
 		statusText.style.color = "blue";
+		statusLittleBox.label = "SVE: Error";
 		return;
 	}
 	
@@ -1013,6 +1065,7 @@ function SPFSendQuery2(func, queryObj) {
 	if (!e) {
 		statusText.value = "Server error.";
 		statusText.style.color = "blue";
+		statusLittleBox.label = "SVE: Error";
 		return;
 	}
 	

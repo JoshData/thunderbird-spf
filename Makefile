@@ -2,7 +2,7 @@ JARSOURCES=\
 	content/contents.rdf \
 	content/sha1.js content/dns.js content/spf.js content/domainkeys.js content/sve.js  \
 	content/BigInt.js content/Barrett.js content/RSA.js \
-	content/spf.xul content/options.xul \
+	content/spf.xul content/options.xul content/statusoverlay.xul \
 	content/misc.js content/trustedmta.xul content/trustedforwarder.xul
 
 XPISOURCES=\
@@ -20,6 +20,7 @@ chrome/sve.jar: $(JARSOURCES)
 	zip -q chrome/sve.jar $(JARSOURCES)
 
 package: sve.xpi chrome/sve.jar
+	mkdir -p archive
 	tar -C .. -czf archive/thunderbird-sve-`date +%F`.tgz \
 		 --exclude thunderbird-spf/content/.svn \
 		thunderbird-spf/chrome \

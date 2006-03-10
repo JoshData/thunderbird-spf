@@ -34,7 +34,12 @@
 		if (isPref("spf.warnunverified", "yes"))
 			spf_warnunverified.checked = true;
 
-	    var spf_dnsserver = document.getElementById("spf_dnsserver");
+		var spf_onlystatusbar = document.getElementById("spf_onlystatusbar");
+		spf_onlystatusbar.checked = false;
+		if (isPref("spf.onlystatusbar", "yes"))
+			spf_onlystatusbar.checked = true;
+
+		var spf_dnsserver = document.getElementById("spf_dnsserver");
 		if (prefs.getPrefType("dns.nameserver") == prefs.PREF_STRING) {
 			spf_dnsserver.value = prefs.getCharPref("dns.nameserver");
 		}
@@ -80,6 +85,9 @@
 		var spf_warnunverified = document.getElementById("spf_warnunverified");
 		prefs.setCharPref("spf.warnunverified", spf_warnunverified.checked ? "yes" : "no");
 		
+		var spf_onlystatusbar = document.getElementById("spf_onlystatusbar");
+		prefs.setCharPref("spf.onlystatusbar", spf_onlystatusbar.checked ? "yes" : "no");
+
 	    var spf_dnsserver = document.getElementById("spf_dnsserver");
 		prefs.setCharPref("dns.nameserver", spf_dnsserver.value);
 	}
@@ -139,7 +147,8 @@
 	  <vbox>
   	  <checkbox label="Check Every Email" id="spf_checkonload"/>
 	  <checkbox label="Check DomainKeys Signatures (Small bits of your emails are sent over the Internet; see the privacy warning on the website)" id="spf_usedk"/>
-	  <checkbox label="Show Warnings for Unverified Emails" id="spf_warnunverified"/>
+	  <checkbox label="Show Popup Warnings for Unverified Emails" id="spf_warnunverified"/>
+	  <checkbox label="Show Status Only in Status Bar" id="spf_onlystatusbar"/>
 	  </vbox>
   
   	  <separator class="groove-thin"/>
