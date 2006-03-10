@@ -27,7 +27,7 @@
 	to remember that this server is in your internal network.  Otherwise, click <i>Nevermind</i>.</description>
 	
 	<description>You can edit the list of internal network servers by going to Tools | Extensions and opening
-	the options for the SPF Extension.</description>
+	the options for the Sender Verification Extension.</description>
 	
 	<hbox>
 

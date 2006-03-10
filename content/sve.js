@@ -40,6 +40,7 @@ var checkonload = "";
 var usedk = "";
 var warnunverified;
 var onlystatusbar;
+var sve_internal_mtas;
 
 // GLOBAL VARIABLES
 // Yes it's a bad way to program, but it seems necessary in order
@@ -114,6 +115,14 @@ function spfLoadSettings() {
 		&& prefs.getCharPref("spf.onlystatusbar") == "yes") {
 		onlystatusbar = true;
 	}
+	
+	sve_internal_mtas = Array(0);
+	if (prefs.getPrefType("spf.internal_mtas") == prefs.PREF_STRING)
+		sve_internal_mtas = prefs.getCharPref("spf.internal_mtas").split(',');
+	sve_internal_mtas.push("127.0.0.0/24");
+	sve_internal_mtas.push("192.168.0.0/16");
+	sve_internal_mtas.push("172.16.0.0/12");
+	sve_internal_mtas.push("10.0.0.0/8");
 }
 
 function spfGoEvent() {
@@ -325,34 +334,28 @@ function spfGo(manual) {
 
 				if (he != null && ip != null) {
 					var internal = 0;
-					// TODO: check the fourth range: 172.16.0.0-172.31.255.255
-					if (startsWith(ip, "127.0.0.") || startsWith(ip, "192.168.") || startsWith(ip, "10.")) {
-						internal = 1;
-					} else {
-						// Check spf.host.* preferences to see if these are internal mail servers.
-						var ip2 = ip;
-						while (ip2 != null) {
-							var prefname = "spf.host." + ip2;
-							if (prefs.getPrefType(prefname) == prefs.PREF_STRING) {
-								internal = (prefs.getCharPref(prefname) == "trust");
-								if (internal) break;
+					for (var mta_index = 0; mta_index < sve_internal_mtas.length; mta_index++) {
+						var ip2 = sve_internal_mtas[mta_index];
+						var cidr = 32;
+						var slash = ip2.indexOf("/");
+						if (slash != -1) {
+							cidr = parseInt(ip2.substring(slash+1));
+							if (isNaN(cidr)) cidr = 32;
+							ip2 = ip2.substring(0, slash);
+						}
+						
+						if (endsWith(ip2, ".*")) {
+							ip2 = ip2.substring(0, ip2.length-1);
+							if (startsWith(ip, ip2)) {
+								internal = 1;
+								break;
 							}
-							
-							// If this was a wildcard test, strip off the wildcard.
-							if (endsWith(ip2, ".*")) { ip2 = ip2.substring(0, ip2.length-2); }
-							
-							// If there's a dot in the string, replace what's after the dot
-							// with an asterisk, and continue checking.
-							var dot = ip2.lastIndexOf(".");
-							if (dot > 0) {
-								ip2 = ip2.substring(0, dot+1) + "*";
-							} else {
-								// No more testing.
-								ip2 = null;
-							}
+						} else if (SPF_TestIP(ip, ip2, cidr)) {
+							internal = 1;
+							break;
 						}
 					}
-					
+						
 					if (!internal) {
 						// This is the point where we should do an SPF check.
 						if (this.mode == 0) {

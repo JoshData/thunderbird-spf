@@ -166,7 +166,7 @@
 			<button label="Add" oncommand="doAddMta()"/>
 		  </hbox>
 		  <description>These are <b>IP addresses</b> of servers in your internal network.
-		  (You may use wildcards, e.g. 123.456.789.*)</description>	  
+		  (You may use CIDR and wildcards, e.g. 123.456.789.* or 123.456.789.0/24)</description>	  
 		  </vbox>
 		  
 		  <vbox style="width: 260px">
