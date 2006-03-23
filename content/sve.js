@@ -199,7 +199,7 @@ function spfGo(manual) {
 	// If we're in offline mode, bail out.  Unfortunately this doesn't seem
 	// to actually return true when we're in offline mode.
 	var ioservice =
-	Components.classes["@mozilla.org/network/io-service;1"].createInstance().QueryInterface(Components.interfaces.nsIIOService);
+	Components.classes["@mozilla.org/network/util;1"].getService().QueryInterface(Components.interfaces.nsIIOService);
 	if (ioservice.offline) return;
 
 	statusText.style.display = null;
