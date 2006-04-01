@@ -9,6 +9,8 @@
 		ondialogaccept="doAccept()"
         >
 
+  <script type="application/x-javascript" src="chrome://spf/content/dns.js" />
+	
   <script>
   
 	var prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
@@ -42,6 +44,9 @@
 		var spf_dnsserver = document.getElementById("spf_dnsserver");
 		if (prefs.getPrefType("dns.nameserver") == prefs.PREF_STRING) {
 			spf_dnsserver.value = prefs.getCharPref("dns.nameserver");
+		}
+		if (DNS_FOUND_NAME_SERVER_AUTOMATICALLY) {
+			spf_dnsserver.value = DNS_ROOT_NAME_SERVER;
 		}
 			
 		initList("spf_mta", "spf.internal_mtas")
@@ -88,8 +93,10 @@
 		var spf_onlystatusbar = document.getElementById("spf_onlystatusbar");
 		prefs.setCharPref("spf.onlystatusbar", spf_onlystatusbar.checked ? "yes" : "no");
 
-	    var spf_dnsserver = document.getElementById("spf_dnsserver");
-		prefs.setCharPref("dns.nameserver", spf_dnsserver.value);
+		var spf_dnsserver = document.getElementById("spf_dnsserver");
+		if (!(DNS_FOUND_NAME_SERVER_AUTOMATICALLY &amp;&amp; spf_dnsserver.value == DNS_ROOT_NAME_SERVER)) {
+			prefs.setCharPref("dns.nameserver", spf_dnsserver.value);
+		}
 	}
 	
 	function mtaUpdateList(listboxname, prefname) {
@@ -198,7 +205,7 @@
 		<label value="DNS Server:" class="header"/>
 		<textbox id="spf_dnsserver" style="width: 250px"/>
 	  </vbox>
-	  <description>Optionally provide the IP or hostname of your own DNS server.  Although the extension will work without this option set, verifications will be slower and not all emails will be able to be verified with SPF unless you provide the DNS nameserver assigned to you by your ISP or sys-admin.  In Windows XP, to find your DNS server, go to Start -&gt; Control Panel -&gt; Network Connections -&gt; Local Area Network -&gt; Support -&gt; Details. Then take the IP address listed next to DNS Servers. It will look something like "123.456.789.123".</description>	  
+	  <description>Optionally provide the IP or hostname of your own DNS server.  Leave blank to auto-detect.</description>	  
 	  
 	 </vbox>
 </dialog>

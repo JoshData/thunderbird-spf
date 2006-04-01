@@ -196,8 +196,7 @@ function spfGo(manual) {
 	if (!uri) return;
 	if (uri.indexOf("news-message://") == 0) return;
 	
-	// If we're in offline mode, bail out.  Unfortunately this doesn't seem
-	// to actually return true when we're in offline mode.
+	// If we're in offline mode, bail out.
 	var ioservice =
 	Components.classes["@mozilla.org/network/util;1"].getService().QueryInterface(Components.interfaces.nsIIOService);
 	if (ioservice.offline) return;

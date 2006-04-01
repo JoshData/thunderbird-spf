@@ -12,10 +12,14 @@
  * the profile option "dns.nameserver" to the hostname or
  * IP of your own ISP's nameserver that your computer
  * normally uses, which should respond on TCP.
+ * If no dns.nameserver option is given, the Windows registry and
+ * the file /etc/resolv.conf (on Linux) will be scanned
+ * for a DNS server to use.
  */
 
 var DNS_ROOT_NAME_SERVER = "J.ROOT-SERVERS.NET";
 var DNS_ALLOW_RECURSION = 1;
+var DNS_FOUND_NAME_SERVER_AUTOMATICALLY = 0;
 
 var DNS_CACHE_SIZE = 1000;
 
@@ -34,6 +38,53 @@ function DNS_LoadPrefs() {
 								  // for us, but gives us an authority server,
 								  // we don't want to follow it to see if it
 								  // has an answer.
+	} else {
+		// Try getting a nameserver from /etc/resolv.conf.
+		try {
+			var resolvconf = Components.classes["@mozilla.org/file/local;1"].createInstance(Components.interfaces.nsILocalFile);
+			resolvconf.initWithPath("/etc/resolv.conf");
+			
+			var stream = Components.classes["@mozilla.org/network/file-input-stream;1"].createInstance();
+			var stream_filestream = stream.QueryInterface(Components.interfaces.nsIFileInputStream);
+			stream_filestream.init(resolvconf, 0, 0, 0); // don't know what the flags are...
+			
+			var stream_reader = stream.QueryInterface(Components.interfaces.nsILineInputStream);
+			
+			var out_line = Object();
+			while (stream_reader.readLine(out_line)) {
+				if (DNS_StartsWith(out_line.value, "nameserver ")) {
+					DNS_ROOT_NAME_SERVER = out_line.value.substring("nameserver ".length);
+					DNS_ALLOW_RECURSION = 0;
+					DNS_FOUND_NAME_SERVER_AUTOMATICALLY = 1;
+					break;
+				}
+			}
+			
+			stream_filestream.close();
+		} catch (e) {
+		}
+		
+		// Try getting a nameserver from the windows registry
+		try {
+			var registry_object = Components.classes["@mozilla.org/windows-registry-key;1"].createInstance();
+			var registry = registry_object.QueryInterface(Components.interfaces.nsIWindowsRegKey);
+			
+			registry.open(registry.ROOT_KEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters", registry.ACCESS_QUERY_VALUE);
+			var ns = "";
+			if (registry.hasValue("DhcpNameServer")) ns = registry.readStringValue("DhcpNameServer");
+			if (ns == "" && registry.hasValue("NameServer")) ns = registry.readStringValue("NameServer");
+			registry.close();
+			
+			if (ns != "") {
+				var servers = ns.split(' ');
+				if (servers.length > 0 && servers[0] != "") {
+					DNS_ROOT_NAME_SERVER = servers[0];
+					DNS_ALLOW_RECURSION = 0;
+					DNS_FOUND_NAME_SERVER_AUTOMATICALLY = 1;
+				}
+			}
+		} catch (e) {
+		}
 	}
 }
 
