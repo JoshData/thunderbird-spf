@@ -5,8 +5,6 @@ function doAddList(name, prefname, prefprefix) {
 	var name = name.replace(re, '');
 	if (name == "") { return; }
 	
-	prefs.setCharPref(prefprefix + name, "trust");
-	
 	var list = "";
 	if (prefs.getPrefType(prefname) == prefs.PREF_STRING) {
 		list = prefs.getCharPref(prefname);

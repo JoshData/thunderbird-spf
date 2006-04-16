@@ -14,6 +14,7 @@
 // CONSTANTS
 
 var useragent = "sve:0.7"; // The useragent field sent to the query server
+var sveHttpUserAgent = "Sender Verification Extension for Mozilla Thunderbird 0.79";
 
 // REGULAR EXPRESSIONS
 
@@ -29,6 +30,7 @@ var DateRegEx = /^Date: ([\w\W]+)/i;
 // MISC
 
 var xmlhttp = new XMLHttpRequest();
+var xmlhttp2 = new XMLHttpRequest();
 
 var DAYS_TOO_OLD = 7; // THIS MANY DAYS IN THE PAST => NO SPF CHECK
 var DAYS_IN_THE_FUTURE = 1.1; // THIS MANY DAYS IN THE FUTURE => NO SPF CHECK
@@ -78,6 +80,8 @@ var QueryCacheNext = 0;
 var QueryCacheMax = 100;
 
 var lastCheckedEmail;
+
+var recentSenderIps = Object();
 
 // Whenever the messagepane loads, run a SPF check.
 var messagepane = document.getElementById("messagepane");
@@ -196,10 +200,13 @@ function spfGo(manual) {
 	if (!uri) return;
 	if (uri.indexOf("news-message://") == 0) return;
 	
-	// If we're in offline mode, bail out.
-	var ioservice =
+	// If we're in offline mode, bail out.  Apparently not supported in TBird 1.0.7.
+	try {
+		var ioservice =
 	Components.classes["@mozilla.org/network/util;1"].getService().QueryInterface(Components.interfaces.nsIIOService);
-	if (ioservice.offline) return;
+		if (ioservice.offline) return;
+	} catch (e) {
+	}
 
 	statusText.style.display = null;
 	
@@ -766,6 +773,46 @@ function spfGo3() {
 }
 
 function spfGoFinish() {
+	if (QueryReturn.result == "fail") {
+		spfGoFinish2();
+		return;
+	}
+	
+	// Check Netcraft Toolbar
+	
+	QueryReturn.netcraft_risk = null;
+	QueryReturn.netcraft_rank = null;
+	QueryReturn.netcraft_since = null;
+	
+	xmlhttp2.abort();
+	xmlhttp2.open("GET", "http://toolbar.netcraft.com/check_url/http://www." + SVE_GetDomain(FromHdr), true);
+	xmlhttp2.setRequestHeader("User-Agent", sveHttpUserAgent);
+	xmlhttp2.onerror = spfGoFinish2;
+	xmlhttp2.onload = function() {
+		if (xmlhttp2.responseText != null) {
+			var matches = xmlhttp2.responseText.match(/>(\d+)</);
+			if (matches != null) {
+				QueryReturn.netcraft_rank = matches[1];
+				if (QueryReturn.netcraft_rank > 2000)
+					QueryReturn.netcraft_risk = 1;
+				if (QueryReturn.netcraft_rank > 200000)
+					QueryReturn.netcraft_risk = 2;
+			}
+
+			matches = xmlhttp2.responseText.match(/> ?([A-Z][a-z]+ \d+)</);
+			if (matches != null) {
+				QueryReturn.netcraft_since = matches[1];
+				if (endsWith(QueryReturn.netcraft_since, new Date().getFullYear())
+					|| endsWith(QueryReturn.netcraft_since, new Date().getFullYear()-1))
+					QueryReturn.netcraft_risk = 2;
+			}
+		}
+		spfGoFinish2();
+	};
+	xmlhttp2.send(null);
+}
+
+function spfGoFinish2() {
 	// Check for similarly-named domains.  There's no sense in doing this if
 	// the domain is already apparently forged.	
 	/*if (QueryReturn.result != "fail")
@@ -777,11 +824,13 @@ function spfGoFinish() {
 		statusLink.value = "No explanation is available for this message.";
 	else
 		statusLink.value = QueryReturn.comment;
+	
+	if (QueryReturn.netcraft_risk > 0)
+		statusLink.value += " Site Age: " + QueryReturn.netcraft_since + ", Netcraft Rank: " + QueryReturn.netcraft_rank;
 
 	// When the sender is not verified and the forwarder is not trusted, then
 	// show the internal network server link.
-	if (QueryReturn.result != "pass" && QueryReturn.method != "surbl" && QueryReturn.result != "none"
-		&& !QueryReturn.trustedForwarder) {
+	if (QueryReturn.result != "pass" && QueryReturn.method != "surbl" && !QueryReturn.trustedForwarder) {
 			
 		reverseDNS(IPAddr, function(hostnames) {
 			if (hostnames == null || hostnames.length == 0) return;
@@ -790,6 +839,20 @@ function spfGoFinish() {
 			statusTrust.linktype = "mta";
 			statusTrust.mta = IPAddr;
 			statusTrust.reversedns = hostnames[0];
+			
+			if (recentSenderIps[hostnames[0]] != "ignore") {
+				if (recentSenderIps[hostnames[0]] == null) recentSenderIps[hostnames[0]] = 0;
+				recentSenderIps[hostnames[0]]++;
+				if (recentSenderIps[hostnames[0]] > 5) {
+					recentSenderIps[hostnames[0]] = "ignore";
+					var spfLinkDiv = document.getElementById('spfLinkDiv');
+					if (!spfLinkDiv.style.display) { spfLinkDiv.style.display = 'none'; this.setAttribute('class', 'collapsedHeaderViewButton'); }
+					
+					window.mta = IPAddr;
+					window.reversedns = hostnames[0];
+					window.open('chrome://spf/content/trustedmta.xul', '', 'chrome');
+				}
+			}
 		});
 	}
 	
@@ -806,6 +869,15 @@ function spfGoFinish() {
 				statusText.style.color = null;
 				statusLittleBox.label = "SVE: Domain Verified";
 				statusLittleBox.style.color = "blue";
+				if (QueryReturn.netcraft_risk == 2) {
+					statusText.value += ", High Risk";
+					statusText.style.color = "red";
+					statusLittleBox.label = "SVE: Domain Verified (High Risk)";
+					statusLittleBox.style.color = "red";
+				} else if (QueryReturn.netcraft_risk == 1) {
+					statusText.value += ", Medium Risk";
+					statusLittleBox.label = "SVE: Domain Verified (Medium Risk)";
+				}
 			} else {
 				statusText.value = "\"From\" address could not be verified. Verified envelope domain: <" + QueryReturn.domain + ">";
 				statusText.style.color = "red";
@@ -835,10 +907,17 @@ function spfGoFinish() {
 			statusLittleBox.style.color = "red";
 			break;
 		case "none":
-			statusText.value = "Sending domain does not support verification.  (Address could be forged.)";
-			statusText.style.color = "blue";
-			statusLittleBox.label = "SVE: Not Verified";
-			statusLittleBox.style.color = "red";
+			if (QueryReturn.netcraft_risk <= 1) {
+				statusText.value = "Sending domain does not support verification.  (Address could be forged.)";
+				statusText.style.color = "blue";
+				statusLittleBox.label = "SVE: Not Verified";
+				statusLittleBox.style.color = "red";
+			} else {
+				statusText.value = "Sending domain does not support verification; high-risk detected.";
+				statusText.style.color = "red";
+				statusLittleBox.label = "SVE: Not Verified; High Risk";
+				statusLittleBox.style.color = "red";
+			}
 			break;
 		case "neutral":
 			statusText.value = "Sender cannot be verified by domain.  (Address could be forged.)";
@@ -906,7 +985,6 @@ function SVE_QuerySPF(helo, ip, email_from, email_envelope, func) {
 			if (addr != null)
 				alert("The domain <" + SVE_GetDomain(email_from) + "> is listed in the MailPolice fraud blocklist.  It is likely this message was written with malicious intentions.  It is advised that you do not reply or open any links in the email.");
 		});
-	
 	
 	// Remember what message we're looking at now.  If the
 	// user moves on to another message while we're waiting
@@ -1038,6 +1116,7 @@ function SPFSendDKQuery(helo, ip, email_from, email_envelope, dkheader, dkhash, 
 	statusText.value = "Contacting DomainKeys verification server...";
 	
 	xmlhttp.open("GET", url, true);
+	xmlhttp.setRequestHeader("User-Agent", sveHttpUserAgent);
 	xmlhttp.onerror=function() {
 		statusText.value = "Error verifying sender: " + xmlhttp.statusText;
 		statusText.style.color = "blue";
