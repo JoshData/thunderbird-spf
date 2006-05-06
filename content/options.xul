@@ -113,7 +113,7 @@
 	function doRemoveList(listboxname, listprefname, listprefprefix) {
 		var listbox = document.getElementById(listboxname);
 		if (listbox.selectedIndex == -1) { return; }
-		prefs.clearUserPref(listprefprefix + listbox.selectedItem.value);
+		try { prefs.clearUserPref(listprefprefix + listbox.selectedItem.value); } catch (e) { }
 		listbox.removeItemAt(listbox.selectedIndex);
 		mtaUpdateList(listboxname, listprefname);
 	}
