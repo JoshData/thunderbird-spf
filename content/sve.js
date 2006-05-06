@@ -199,6 +199,7 @@ function spfGo(manual) {
 
 	if (!uri) return;
 	if (uri.indexOf("news-message://") == 0) return;
+	if (uri.indexOf("file://") == 0) return; // leads to a segfault otherwise
 	
 	// If we're in offline mode, bail out.  Apparently not supported in TBird 1.0.7.
 	try {
