@@ -18,13 +18,7 @@
  */
 
 var DNS_ROOT_NAME_SERVER = "J.ROOT-SERVERS.NET";
-var DNS_ALLOW_RECURSION = 1;
 var DNS_FOUND_NAME_SERVER_AUTOMATICALLY = 0;
-
-var DNS_CACHE_SIZE = 1000;
-
-var dnsCache = Array(DNS_CACHE_SIZE);
-var dnsCachePos = 0;
 
 DNS_LoadPrefs();
 
@@ -34,10 +28,6 @@ function DNS_LoadPrefs() {
 	if (prefs.getPrefType("dns.nameserver") == prefs.PREF_STRING
 		&& prefs.getCharPref("dns.nameserver") != null && prefs.getCharPref("dns.nameserver") != "") {
 		DNS_ROOT_NAME_SERVER = prefs.getCharPref("dns.nameserver");
-		DNS_ALLOW_RECURSION = 0; // When our own name server has no answer
-								  // for us, but gives us an authority server,
-								  // we don't want to follow it to see if it
-								  // has an answer.
 	} else {
 		// Try getting a nameserver from /etc/resolv.conf.
 		try {
@@ -54,7 +44,6 @@ function DNS_LoadPrefs() {
 			while (stream_reader.readLine(out_line)) {
 				if (DNS_StartsWith(out_line.value, "nameserver ")) {
 					DNS_ROOT_NAME_SERVER = out_line.value.substring("nameserver ".length);
-					DNS_ALLOW_RECURSION = 0;
 					DNS_FOUND_NAME_SERVER_AUTOMATICALLY = 1;
 					break;
 				}
@@ -79,7 +68,6 @@ function DNS_LoadPrefs() {
 				var servers = ns.split(' ');
 				if (servers.length > 0 && servers[0] != "") {
 					DNS_ROOT_NAME_SERVER = servers[0];
-					DNS_ALLOW_RECURSION = 0;
 					DNS_FOUND_NAME_SERVER_AUTOMATICALLY = 1;
 				}
 			}
@@ -118,20 +106,7 @@ function DNS_Test() {
 
 // queryDNS: This is the main entry point for external callers.
 function queryDNS(host, recordtype, callback, callbackdata) {
-	var server = DNS_ROOT_NAME_SERVER;
-	var authlen = 0;
-	
-	// Check if an authority exists pertaining to this host.
-	for (var c = 0; c < dnsCache.length; c++) {
-		if (dnsCache[c] == null) break;
-		if (dnsCache[c].domain == host) { server = dnsCache[c].authority; break; }
-		if (endsWith(host, "." + dnsCache[c].domain) && dnsCache[c].domain.length > authlen) {
-			server = dnsCache[c].authority;
-			authlen = dnsCache[c].domain.length;
-		}
-	}
-	
-	queryDNSRecursive(server, host, recordtype, callback, callbackdata, 0);
+	queryDNSRecursive(DNS_ROOT_NAME_SERVER, host, recordtype, callback, callbackdata, 0);
 }
 
 function reverseDNS(ip, callback, callbackdata) {
@@ -140,9 +115,9 @@ function reverseDNS(ip, callback, callbackdata) {
 	// resolves to the original IP.
 	
 	queryDNS(DNS_ReverseIPHostname(ip), "PTR",
-		function(hostnames) {
+		function(hostnames, mydata, queryError) {
 			// No reverse DNS info available.
-			if (hostnames == null) { callback(null, callbackdata); return; }
+			if (hostnames == null) { callback(null, callbackdata, queryError); return; }
 			
 			var obj = new Object();
 			obj.ret = Array(0);
@@ -186,44 +161,13 @@ function DNS_ReverseIPHostname(ip) {
 	return q[3] + "." + q[2] + "." + q[1] + "." + q[0] + ".in-addr.arpa";
 }
 
-
-function dnsCacheItem(domain, authority) {
-	this.domain = domain;
-	this.authority = authority;
-}
-
 function queryDNSRecursive(server, host, recordtype, callback, callbackdata, hops) {
 	if (hops == 10) {
 		DNS_Debug("DNS: Maximum number of recursive steps taken in resolving " + host);
-		callback(null, callbackdata);
+		callback(null, callbackdata, "Too many hops.");
 		return;
 	}
 	
-	// Figure out who's responsible for this domain.
-	queryDNSDirect(server, host, recordtype,
-		// Got the answer
-		function(data, innercallbackdata) {
-			DNS_Debug("DNS: Resolved " + host + " " + recordtype + ": " + data);
-			callback(data, innercallbackdata);
-		},
-		
-		// Authority Server
-		function(domain, authority, innercallbackdata) {
-			//DNS_Debug("DNS: Got authority " + authority + " for domain " + domain + " while querying " + server + " for " + host + " " + recordtype);
-			
-			// Cache this authority record.
-			dnsCache[dnsCachePos] = new dnsCacheItem(domain, authority);
-			dnsCachePos = (++dnsCachePos) % dnsCache.length;
-			
-			// Recurse on the authority.
-			queryDNSRecursive(authority, host, recordtype, callback, innercallbackdata, hops+1);
-		},
-		
-		callbackdata
-		);
-}
-
-function queryDNSDirect(server, host, recordtype, callback, authorityCallback, callbackdata) {
 	DNS_Debug("DNS: Resolving " + host + " " + recordtype + " by querying " + server);
 		
 	var query =
@@ -266,9 +210,26 @@ function queryDNSDirect(server, host, recordtype, callback, authorityCallback, c
 		responseHeader : "",
 		responseBody : "",
 		done : false,
-		finished : function(data) {
-			if (!this.done)
-				callback(null, callbackdata);
+		finished : function(data, status) {
+			if (status != 0) {
+				if (status == 2152398861) {
+					DNS_Debug("DNS: Resolving " + host + "/" + recordtype + ": DNS server " + server + " refused a TCP connection.");
+					callback(null, callbackdata, "DNS server " + server + " refused a TCP connection.");
+				} else if (status == 2152398868) {
+					DNS_Debug("DNS: Resolving " + host + "/" + recordtype + ": DNS server " + server + " timed out on a TCP connection.");
+					callback(null, callbackdata, "DNS server " + server + " timed out on a TCP connection.");
+				} else {
+					DNS_Debug("DNS: Resolving " + host + "/" + recordtype + ": Failed to connect to DNS server " + server + " with error code " + status + ".");
+					callback(null, callbackdata, "Error connecting to DNS server " + server + ".");
+				}
+				return;
+			}
+			
+			process(data);
+			if (!this.done) {
+				DNS_Debug("DNS: Resolving " + host + "/" + recordtype + ": Response was incomplete.");
+				callback(null, callbackdata, "Incomplete response from " + server + ".");
+			}
 		},
 		process : function(data){
 			if (this.done) return false;
@@ -288,7 +249,7 @@ function queryDNSDirect(server, host, recordtype, callback, authorityCallback, c
 				if (this.readcount >= this.msgsize+2) {
 					this.responseHeader = this.responseHeader.substr(2); // chop the length field
 					this.done = true;
-					DNS_getRDData(this.responseHeader + this.responseBody, callback, authorityCallback, callbackdata, server);
+					DNS_getRDData(this.responseHeader + this.responseBody, server, host, recordtype, callback, callbackdata, hops);
 					return false;
 				}
 			}
@@ -335,11 +296,12 @@ function DNS_readRec(ctx) {
 	rec.cls = DNS_strToWord(ctx.str.substr(ctx.idx, 2)); ctx.idx += 2;
 	rec.ttl = DNS_strToWord(ctx.str.substr(ctx.idx, 2)); ctx.idx += 4; // 32bit
 	rec.rdlen = DNS_strToWord(ctx.str.substr(ctx.idx, 2)); ctx.idx += 2;
+	rec.recognized = 1;
 	
 	var ctxnextidx = ctx.idx + rec.rdlen;
 	
 	if (rec.type == 16) {
-		// TXT
+		rec.type = "TXT";
 		rec.rddata = "";
 		ctr = 10;
 		while (rec.rdlen > 0 && ctr-- > 0) {
@@ -347,17 +309,23 @@ function DNS_readRec(ctx) {
 			rec.rddata += ctx.str.substr(ctx.idx, txtlen); ctx.idx += txtlen; rec.rdlen -= txtlen;
 		}
 	} else if (rec.type == 1) {
-		// A: Return as a dotted-quad
+		// Return as a dotted-quad
+		rec.type = "A";
 		rec.rddata = ctx.str.substr(ctx.idx, rec.rdlen);
 		rec.rddata = rec.rddata.charCodeAt(0) + "." + rec.rddata.charCodeAt(1) + "." + rec.rddata.charCodeAt(2) + "." + rec.rddata.charCodeAt(3);
 	} else if (rec.type == 15) {
-		// MX
+		rec.type = "MX";
 		rec.rddata = new Object();
 		rec.rddata.preference = DNS_strToWord(ctx.str.substr(ctx.idx,2)); ctx.idx += 2;
 		rec.rddata.host = DNS_readDomain(ctx);
-	} else {
-		// NS, PTR
+	} else if (rec.type == 2) {
+		rec.type = "NS";
 		rec.rddata = DNS_readDomain(ctx);
+	} else if (rec.type == 12) {
+		rec.type = "PTR";
+		rec.rddata = DNS_readDomain(ctx);
+	} else {
+		rec.recognized = 0;
 	}
 	
 	ctx.idx = ctxnextidx;
@@ -365,7 +333,7 @@ function DNS_readRec(ctx) {
 	return rec;
 }
 
-function DNS_getRDData(str, callback, authorityCallback, callbackdata, server) {
+function DNS_getRDData(str, server, host, recordtype, callback, callbackdata, hops) {
 	var qcount = DNS_strToWord(str.substr(4, 2));
 	var ancount = DNS_strToWord(str.substr(6, 2));
 	var aucount = DNS_strToWord(str.substr(8, 2));
@@ -380,10 +348,10 @@ function DNS_getRDData(str, callback, authorityCallback, callbackdata, server) {
 	var ttl;
 	var rec;
 	
-	// sanity checks
-	if (qcount > 1) qcount = 1;
-	if (ancount > 64) ancount = 64;
-	if (aucount > 64) aucount = 64;
+	if (qcount != 1) throw "Invalid response: Question section didn't have exactly one record.";
+	if (ancount > 128) throw "Invalid response: Answer section had more than 128 records.";
+	if (aucount > 128) throw "Invalid response: Authority section had more than 128 records.";
+	if (adcount > 128) throw "Invalid response: Additional section had more than 128 records.";
 	
 	for (i = 0; i < qcount; i++) {
 		dom = DNS_readDomain(ctx);
@@ -391,26 +359,30 @@ function DNS_getRDData(str, callback, authorityCallback, callbackdata, server) {
 		cls = DNS_strToWord(str.substr(ctx.idx, 2)); ctx.idx += 2;
 	}
 	
+	var debugstr = "DNS: " + host + "/" + recordtype + ": ";
+	
 	var results = Array(ancount);
 	for (i = 0; i < ancount; i++) {
 		rec = DNS_readRec(ctx);
+		if (!rec.recognized) throw "Record type is not one that this library can understand.";
 		results[i] = rec.rddata;		
-		DNS_Debug("DNS: Received Result: Result Item: " + rec.rddata);
+		DNS_Debug(debugstr + "Answer: " + rec.rddata);
 	}
 
+	var authorities = Array(aucount);
 	for (i = 0; i < aucount; i++) {
 		rec = DNS_readRec(ctx);
-		if (results.length == 0 && DNS_ALLOW_RECURSION && rec.rddata != server) {
-			DNS_Debug("DNS: Received Result: Authority: " + rec.rddata);
-			authorityCallback(rec.dom, rec.rddata, callbackdata);
-			return;
-		}
+		authorities[i] = rec;
+		if (rec.recognized)
+			DNS_Debug(debugstr + "Authority: " + rec.type + " " + rec.rddata);
+		// Assuming the domain for this record is the domain we are asking about.
 	}
 	
 	for (i = 0; i < adcount; i++) {
 		rec = DNS_readRec(ctx);
-		DNS_Debug("DNS: Received Result: Additional: " + " (type=" + rec.type + ")" + rec.rddata);
-		if (rec.type == 1) {
+		if (rec.recognized)
+			DNS_Debug(debugstr + "Additional: " + rec.dom + " " + rec.type + " " + rec.rddata);
+		if (rec.type == "A") {
 			for (j = 0; j < results.length; j++) {
 				if (results[j].host == rec.dom) {
 					if (results[j].address == null) results[j].address = Array(0);
@@ -419,10 +391,26 @@ function DNS_getRDData(str, callback, authorityCallback, callbackdata, server) {
 			}
 		}
 	}
-
+	
 	if (results.length > 0) {
+		// We have an answer.
 		callback(results, callbackdata);
+		
 	} else {
+		// No answer.  If there is an NS authority, recurse.
+		// Note that we can do without the IP address of the NS authority (given in the additional
+		// section) because we're able to do DNS lookups without knowing the IP address
+		// of the DNS server -- Thunderbird and the OS take care of that.
+		for (var i = 0; i < aucount; i++) {
+			if (authorities[i].type == "NS" && authorities[i].rddata != server) {
+				DNS_Debug(debugstr + "Recursing on Authority: " + authorities[i].rddata);
+				queryDNSRecursive(authorities[i].rddata, host, recordtype, callback, callbackdata, hops+1);
+				return;
+			}
+		}
+
+		// No authority was able to help us.
+		DNS_Debug(debugstr + "No answer, no authority to recurse on.  DNS lookup failed.");
 		callback(null, callbackdata);
 	}
 }
@@ -466,11 +454,11 @@ function DNS_readAllFromSocket(host,port,outputData,listener)
 		data : "",
 		onStartRequest: function(request, context){},
 		onStopRequest: function(request, context, status){
+			if (listener.finished != null) {
+				listener.finished(this.data, status);
+			}
 			outstream.close();
 			stream.close();
-			if (listener.finished != null) {
-				listener.finished(this.data);
-			}
 			//DNS_Debug("DNS: Connection closed (" + host + ")");
 		},
 		onDataAvailable: function(request, context, inputStream, offset, count){
