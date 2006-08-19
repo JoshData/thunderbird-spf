@@ -773,7 +773,7 @@ function spfGo3() {
 	spfGoFinish();
 }
 
-function spfGoFinish() {
+function spfGoFinish_netcraft_disabled() {
 	if (QueryReturn.result == "fail") {
 		spfGoFinish2();
 		return;
@@ -813,6 +813,35 @@ function spfGoFinish() {
 	xmlhttp2.send(null);
 }
 
+function spfGoFinish() {
+	if (QueryReturn.result != "pass" && QueryReturn.result != "none") {
+		spfGoFinish2();
+		return;
+	}
+	
+	// Check the open phishing database
+	
+	statusText.value = "Checking sender in Open Phishing Database...";
+
+	xmlhttp2.abort();
+	xmlhttp2.open("GET", "http://opdb.berlios.de/cgi-bin/query.pl?m=http&i=" + IPAddr + "&s=" + SVE_GetDomain(FromHdr), true);
+	xmlhttp2.setRequestHeader("User-Agent", sveHttpUserAgent);
+	xmlhttp2.onerror = spfGoFinish2;
+	xmlhttp2.onload = function() {
+		if (xmlhttp2.responseText != null) {
+			var matches = xmlhttp2.responseText.match(/Server: y|IP: y/);
+			if (matches != null) {
+				QueryReturn.result = "phishing";
+				QueryReturn.comment = "This sender is listed in the Open Phishing Database.";
+				IsViaMailList = false;
+				alert("This mail was sent from an address associated with phishing attacks.  It is recommended that you discard the email immediately.");
+			}
+		}
+		spfGoFinish2();
+	};
+	xmlhttp2.send(null);
+}
+
 function spfGoFinish2() {
 	// Check for similarly-named domains.  There's no sense in doing this if
 	// the domain is already apparently forged.	
@@ -826,8 +855,8 @@ function spfGoFinish2() {
 	else
 		statusLink.value = QueryReturn.comment;
 	
-	if (QueryReturn.netcraft_risk > 0)
-		statusLink.value += " Site Age: " + QueryReturn.netcraft_since + ", Netcraft Rank: " + QueryReturn.netcraft_rank;
+	/*if (QueryReturn.netcraft_risk > 0)
+		statusLink.value += " Site Age: " + QueryReturn.netcraft_since + ", Netcraft Rank: " + QueryReturn.netcraft_rank;*/
 
 	// When the sender is not verified and the forwarder is not trusted, then
 	// show the internal network server link.
@@ -870,15 +899,6 @@ function spfGoFinish2() {
 				statusText.style.color = null;
 				statusLittleBox.label = "SVE: Domain Verified";
 				statusLittleBox.style.color = "blue";
-				if (QueryReturn.netcraft_risk == 2) {
-					statusText.value += ", High Risk";
-					statusText.style.color = "red";
-					statusLittleBox.label = "SVE: Domain Verified (High Risk)";
-					statusLittleBox.style.color = "red";
-				} else if (QueryReturn.netcraft_risk == 1) {
-					statusText.value += ", Medium Risk";
-					statusLittleBox.label = "SVE: Domain Verified (Medium Risk)";
-				}
 			} else {
 				statusText.value = "\"From\" address could not be verified. Verified envelope domain: <" + QueryReturn.domain + ">";
 				statusText.style.color = "red";
@@ -908,17 +928,10 @@ function spfGoFinish2() {
 			statusLittleBox.style.color = "red";
 			break;
 		case "none":
-			if (QueryReturn.netcraft_risk <= 1) {
-				statusText.value = "Sending domain does not support verification.  (Address could be forged.)";
-				statusText.style.color = "blue";
-				statusLittleBox.label = "SVE: Not Verified";
-				statusLittleBox.style.color = "red";
-			} else {
-				statusText.value = "Sending domain does not support verification; high-risk detected.";
-				statusText.style.color = "red";
-				statusLittleBox.label = "SVE: Not Verified; High Risk";
-				statusLittleBox.style.color = "red";
-			}
+			statusText.value = "Sending domain does not support verification.  (Address could be forged.)";
+			statusText.style.color = "blue";
+			statusLittleBox.label = "SVE: Not Verified";
+			statusLittleBox.style.color = "red";
 			break;
 		case "neutral":
 			statusText.value = "Sender cannot be verified by domain.  (Address could be forged.)";
@@ -931,12 +944,11 @@ function spfGoFinish2() {
 			statusLittleBox.label = "SVE: Not Verified";
 			statusLittleBox.style.color = "red";
 			break;
-		case "spamming":
 		case "phishing":
-			statusText.value = QueryReturn.comment;
+			statusText.value = "This sender is a known malicious phisher.  Discard this email.";
 			statusText.style.color = "red";
-			statusLink.value = "This is reported by www.surbl.org.";
-			statusLittleBox.label = "SVE: Probable Phishing";
+			statusLink.value = QueryReturn.comment;
+			statusLittleBox.label = "SVE: Phishing Attack";
 			statusLittleBox.style.color = "red";
 			break;
 		default:
@@ -959,7 +971,6 @@ function spfGoFinish2() {
 		default:
 			statusText.value = "Mail list domain could not be verified or does not support verification.";
 			statusText.style.color = "blue";
-			statusLink.value = "No sender information could be verified.";
 			statusLittleBox.label = "SVE: Not Verified";
 			statusLittleBox.style.color = "red";
 			break;
