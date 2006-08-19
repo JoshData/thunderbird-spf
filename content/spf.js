@@ -16,7 +16,7 @@ var spfRecordCacheIndex = 0;
 
 var spfConsoleService = Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService);
 
-//SPF("68.167.112.147", "for.net", function(result) { alert(result.message); });
+//SPF("68.167.112.147", "occams.info", function(result) { alert(result.message); });
 //SPF("130.94.251.12", "craigslist.org", function(result) { alert(result.message); });
 //SPF("64.4.240.67", "paypal.com", function(result) { alert(result.message); });
 
@@ -25,9 +25,12 @@ function SPF(ip, domain, callback) {
 	// none, neutral, pass, fail, softfail, temperror, permerror
 	SPF_GetRecord(
 		domain,
-		function(record) {
+		function(record, queryError) {
 			if (record == null) {
-				callback(new SPFResult("0", "Domain does not support SPF verification.", 0));
+				if (queryError == null)
+					callback(new SPFResult("0", "Domain does not support SPF verification.", 0));
+				else
+					callback(new SPFResult("E", "Could not get SPF info: " + queryError, 0));
 				return;
 			}
 			
@@ -104,18 +107,22 @@ function SPF_GetRecord(domain, callback) {
 	}
 	
 	queryDNS(domain, "TXT",
-		function(txtrecords) {
+		function(txtrecords, mydata, queryError) {
 			if (txtrecords != null) {
 				var i;
 				for (i = 0; i < txtrecords.length; i++) {
 					if (txtrecords[i] == "v=spf1" || SPF_StartsWith(txtrecords[i], "v=spf1 ")) {
-						txtrecords[i] = txtrecords[i].substr(6); // chop off v=spf1	
+						txtrecords[i] = txtrecords[i].substr(6); // chop off v=spf1
+						SPF_Debug(" Found: " + txtrecords[i]);
 						ParseSPFRecord(txtrecords[i], domain, callback, false);
 						return;
 					}
 				}
 			}
-			if (SPF_GUESS) {
+			
+			if (queryError != null) {
+				callback(null, queryError);
+			} else if (SPF_GUESS) {
 				SPF_Debug(" Using Guess Mechanisms");
 				ParseSPFRecord("a/24 mx/24", domain, callback, true);
 			} else {
@@ -291,6 +298,7 @@ function ProcessTerm(term, recobj, domain) {
 			mech = new SPFMechanism(prefix, term,
 				function(ip, domain, reversedns, mech) {
 					for (var j = 0; j < reversedns.length; j++) {
+						SPF_Debug(" Comparing " + reversedns[j] + " to " + domcidr.domain);
 						if (reversedns[j] == domcidr.domain || endsWith(reversedns[j], "." + domcidr.domain))
 							return true;
 					}
