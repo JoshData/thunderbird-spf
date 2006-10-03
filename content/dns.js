@@ -225,7 +225,7 @@ function queryDNSRecursive(server, host, recordtype, callback, callbackdata, hop
 				return;
 			}
 			
-			process(data);
+			this.process(data);
 			if (!this.done) {
 				DNS_Debug("DNS: Resolving " + host + "/" + recordtype + ": Response was incomplete.");
 				callback(null, callbackdata, "Incomplete response from " + server + ".");
