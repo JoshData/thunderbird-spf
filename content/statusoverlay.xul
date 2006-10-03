@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<overlay id="spfStatusOverlay" 
+	  xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+	  xmlns:html="http://www.w3.org/1999/xhtml">
+
+	<statusbar class="chromeclass-status" id="status-bar">
+		<hbox insertbefore="unreadMessageCount">
+			<statusbarpanel id="statusTextSVE" label="" style="display: none"/>
+		</hbox>
+	</statusbar>
+	  
+</overlay>
