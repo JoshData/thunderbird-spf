@@ -14,7 +14,7 @@
 // CONSTANTS
 
 var useragent = "sve:0.7"; // The useragent field sent to the query server
-var sveHttpUserAgent = "Sender Verification Extension for Mozilla Thunderbird 0.79";
+var sveHttpUserAgent = "Sender Verification Extension for Mozilla Thunderbird 0.8";
 
 // REGULAR EXPRESSIONS
 
@@ -31,6 +31,7 @@ var DateRegEx = /^Date: ([\w\W]+)/i;
 
 var xmlhttp = new XMLHttpRequest();
 var xmlhttp2 = new XMLHttpRequest();
+var xmlhttp_phishtank = new XMLHttpRequest();
 
 var DAYS_TOO_OLD = 7; // THIS MANY DAYS IN THE PAST => NO SPF CHECK
 var DAYS_IN_THE_FUTURE = 1.1; // THIS MANY DAYS IN THE FUTURE => NO SPF CHECK
@@ -393,7 +394,7 @@ function spfGo(manual) {
 			}
 			
 			if (endofheaders) {
-				spfGo1();
+				SVE_StartCheck();
 				throw "IGNORE_THIS__NOT_A_REAL_PROBLEM"; // abort reading the message since we don't need any more of it
 			}
 		}
@@ -414,7 +415,7 @@ function spfGo(manual) {
 	
 }
 
-function spfGo1() {
+function SVE_StartCheck() {
 	if (IsViaMailList) {
 		// If this is a mail list email, don't bother trying to check the FromAddress
 		// since SPF will certainly fail, and DK will probably fail since messages
@@ -465,7 +466,7 @@ function spfGo1() {
 
 	SVE_QuerySPF(HeloName, IPAddr,
 		FromHdr, EnvFrom != null && EnvFrom != FromHdr ? EnvFrom : null,
-		"spfGo2()");
+		"SVE_OnQuerySPFComplete()");
 	
 	// Protect all links.  This was an interesting idea, but it's disabled for now.
 	// SVE_ProtectLinks(document.getElementById("messagepane").contentDocument);
@@ -557,7 +558,8 @@ function SVE_TryDK() {
 					
 					DKHash = sha1_incremental_end_base64();
 					
-					SPFSendDKQuery(HeloName, IPAddr, FromHdr, EnvFrom != null && EnvFrom != FromHdr ? EnvFrom : null, DKHeader, DKHash, "spfGoFinish()");
+					SPFSendDKQuery(HeloName, IPAddr, FromHdr, EnvFrom != null && EnvFrom != FromHdr ? EnvFrom : null, DKHeader, DKHash,
+						"SVE_OnQueriesComplete()");
 				},
 				
 				onDataAvailable: function(request, context, inputStream, offset, count) {
@@ -745,7 +747,7 @@ function SVE_ProtectLink(a) {
 		a);
 }
 
-function spfGo2() {	
+function SVE_OnQuerySPFComplete() {	
 	var prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
 	var prefname = "spf.forwarder." + QueryReturn.domain;
 	var domainTrusted = (prefs.getPrefType(prefname) == prefs.PREF_STRING && prefs.getCharPref(prefname) == "trust");
@@ -758,24 +760,21 @@ function spfGo2() {
 		&& endsWith(EnvFrom, "@" + QueryReturn.domain)) {
 		if (domainTrusted) {
 			QueryReturn2 = QueryReturn;
-			SVE_QuerySPF(HeloName2, IPAddr2, FromHdr, null, "spfGo3()");
+			SVE_QuerySPF(HeloName2, IPAddr2, FromHdr, null,
+				"QueryReturn.trustedForwarder = QueryReturn2.domain; SVE_OnQueriesComplete();");
 			return;
 		} else {
 			QueryReturn.promptToTrust = 1;
 		}
 	}
 	
-	spfGoFinish();
+	SVE_OnQueriesComplete();
 }
 
-function spfGo3() {
-	QueryReturn.trustedForwarder = QueryReturn2.domain;
-	spfGoFinish();
-}
-
-function spfGoFinish_netcraft_disabled() {
+function SVE_CheckNetcraft() {
+	// this isn't used
+	
 	if (QueryReturn.result == "fail") {
-		spfGoFinish2();
 		return;
 	}
 	
@@ -788,7 +787,7 @@ function spfGoFinish_netcraft_disabled() {
 	xmlhttp2.abort();
 	xmlhttp2.open("GET", "http://toolbar.netcraft.com/check_url/http://www." + SVE_GetDomain(FromHdr), true);
 	xmlhttp2.setRequestHeader("User-Agent", sveHttpUserAgent);
-	xmlhttp2.onerror = spfGoFinish2;
+	xmlhttp2.onerror = SVE_DisplayResult;
 	xmlhttp2.onload = function() {
 		if (xmlhttp2.responseText != null) {
 			var matches = xmlhttp2.responseText.match(/>(\d+)</);
@@ -808,14 +807,76 @@ function spfGoFinish_netcraft_disabled() {
 					QueryReturn.netcraft_risk = 2;
 			}
 		}
-		spfGoFinish2();
+		SVE_DisplayResult();
 	};
 	xmlhttp2.send(null);
 }
 
-function spfGoFinish() {
+function SVE_Check_PhishTank() {
+	// this isn't used...
+	
+	if (QueryReturn.result == "fail") {
+		return;
+	}
+	
+	var hypothetical_url = "http://www." + SVE_GetDomain(FromHdr);
+	
+	var rq_ping = getPhishTankRequest( { version: 1, responseformat: 'xml', action: "misc.ping" });
+	
+	var rq = getPhishTankRequest( { version: 1, responseformat: 'xml', action: "check.url", url: hypothetical_url });
+	
+	xmlhttp_phishtank.abort();
+	xmlhttp_phishtank.open("GET", "https://api.phishtank.com/api/?" + rq, true);
+	xmlhttp_phishtank.setRequestHeader("User-Agent", sveHttpUserAgent);
+	xmlhttp_phishtank.onerror = SVE_DisplayResult;
+	xmlhttp_phishtank.onload = function() {
+		if (xmlhttp_phishtank.responseText != null) {
+			alert(xmlhttp_phishtank.responseText);
+			// xmlhttp.responseXML
+		}
+		SVE_DisplayResult();
+	};
+	xmlhttp_phishtank.send(null);
+}
+
+function getPhishTankRequest(params) {
+	// pass params in alphabetically
+	
+	var apikey = "0a1c3a406be4cbbf4ed77c5cea5eef1929f370aca36708aa37acd78dbdac7350";
+	var sharedsecret = "411fbcd299cadff00dee86745fc39433e4d1688b7b85327f0e52e951aee35a9a"; // obviously not secure
+	
+	params["app_key"] = apikey;
+	
+	// get sorted parameters
+	var p = new Array();
+	for (var prop in params)
+		p.push(prop);
+	p.sort();
+	
+	var url = "";
+	var sig = sharedsecret;
+	
+	for (var i = 0; i < p.length; i++) {
+		if (i > 0) url += "&";
+		url += p[i];
+		url += "=";
+		url += params[p[i]];
+
+		sig += p[i];
+		sig += params[p[i]];
+	}
+	
+	sig = hex_md5(sig);
+	
+	url += "&sig=" + sig;
+	
+	return url;
+}
+
+function SVE_Check_OpenPhishingDatabase() {
+	// this isn't used ...
+	
 	if (QueryReturn.result != "pass" && QueryReturn.result != "none") {
-		spfGoFinish2();
 		return;
 	}
 	
@@ -826,7 +887,7 @@ function spfGoFinish() {
 	xmlhttp2.abort();
 	xmlhttp2.open("GET", "http://opdb.berlios.de/cgi-bin/query.pl?m=http&i=" + IPAddr + "&s=" + SVE_GetDomain(FromHdr), true);
 	xmlhttp2.setRequestHeader("User-Agent", sveHttpUserAgent);
-	xmlhttp2.onerror = spfGoFinish2;
+	xmlhttp2.onerror = SVE_DisplayResult;
 	xmlhttp2.onload = function() {
 		if (xmlhttp2.responseText != null) {
 			var matches = xmlhttp2.responseText.match(/Server: y|IP: y/);
@@ -837,12 +898,16 @@ function spfGoFinish() {
 				alert("This mail was sent from an address associated with phishing attacks.  It is recommended that you discard the email immediately.");
 			}
 		}
-		spfGoFinish2();
+		SVE_DisplayResult();
 	};
 	xmlhttp2.send(null);
 }
 
-function spfGoFinish2() {
+function SVE_OnQueriesComplete() {
+	SVE_DisplayResult();
+}
+
+function SVE_DisplayResult() {
 	// Check for similarly-named domains.  There's no sense in doing this if
 	// the domain is already apparently forged.	
 	/*if (QueryReturn.result != "fail")
@@ -989,15 +1054,25 @@ function SVE_QuerySPF(helo, ip, email_from, email_envelope, func) {
 	statusText.value = "Performing SPF verification...";
 	statusLittleBox.label = "SVE: Checking SPF...";
 	
-	// Check mailpolice's fraud list.
+	// Check the SURBL phishing list, which includes (as of 10-2006)
+	// MailPolice and PhishTank.
 	queryDNS(
-		SVE_GetDomain(email_from) + ".fraud.rhs.mailpolice.com",
+		SVE_GetDomain(email_from) + ".multi.surbl.org",
+		"A",
+		function(addr) {
+			if (addr == null) return;
+			alert("The domain <" + SVE_GetDomain(email_from) + "> is listed in the SURBL list of malicious spam and phishing scams.  It is likely this message was written with malicious intentions.  It is advised that you do not reply or open any links in the email.");
+		});
+	
+	// Check Spamhaus's SBL+XBL blacklist.
+	queryDNS(
+		ip.split('.').reverse().join('.') + ".sbl-xbl.spamhaus.org",
 		"A",
 		function(addr) {
 			if (addr != null)
-				alert("The domain <" + SVE_GetDomain(email_from) + "> is listed in the MailPolice fraud blocklist.  It is likely this message was written with malicious intentions.  It is advised that you do not reply or open any links in the email.");
+				alert("The IP address of the sender of this message is listed in the Spamhaus blocklist.  It is likely this message was written with malicious intentions.  It is advised that you do not reply or open any links in the email.");
 		});
-	
+
 	// Remember what message we're looking at now.  If the
 	// user moves on to another message while we're waiting
 	// for some asynchronous operation to finish, discard
@@ -1282,4 +1357,5 @@ function SVE_Debug(message) {
 	var consoleService = Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService);
 	consoleService.logStringMessage(message);
 }
+
 
