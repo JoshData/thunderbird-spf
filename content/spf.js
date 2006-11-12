@@ -53,10 +53,10 @@ function SPF_DoCheck(record, ip, domain, reversedns, callback, hops) {
 	var result = SPF_DoCheck2(record, ip, domain, reversedns);
 	if (result != null) {
 		var message;
-		if (result == "+") message = "The sender was " + (!record.isguess ? "explicitly" : "implicitly") + " permitted by <" + domain + ">.";
-		else if (result == "-") message = "The sender was denied by <" + domain + ">.";
-		else if (result == "~") message = "The sender was not permitted by <" + domain + ">.";
-		else if (result == "?") message = "The sender could not be verified by <" + domain + ">.";
+		if (result == "+") message = "The sender was " + (!record.isguess ? "explicitly" : "implicitly") + " permitted by <" + domain + "> with SPF.";
+		else if (result == "-") message = "The sender was denied by <" + domain + "> by SPF.";
+		else if (result == "~") message = "The sender was not permitted by <" + domain + "> with SPF.";
+		else if (result == "?") message = "The sender could not be verified by <" + domain + "> using SPF.";
 		else if (result == "permerror") message = "The sender has a SPF configuration problem or uses an unsupported feature.";
 		else if (result == "temperror") message = "There was a temporary problem using SPF verification.";
 		

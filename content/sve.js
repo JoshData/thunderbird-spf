@@ -960,12 +960,12 @@ function SVE_DisplayResult() {
 	switch (QueryReturn.result) {
 		case "pass":
 			if (endsWith(FromHdr, "@" + QueryReturn.domain)) {
-				statusText.value = "Sending Domain <" + QueryReturn.domain + "> Verified";
+				statusText.value = "Domain <" + QueryReturn.domain + "> Confirmed.";
 				statusText.style.color = null;
-				statusLittleBox.label = "SVE: Domain Verified";
+				statusLittleBox.label = "SVE: Domain Confirmed";
 				statusLittleBox.style.color = "blue";
 			} else {
-				statusText.value = "\"From\" address could not be verified. Verified envelope domain: <" + QueryReturn.domain + ">";
+				statusText.value = "\"From\" domain unverified. Envelope domain <" + QueryReturn.domain + "> confirmed.";
 				statusText.style.color = "red";
 				statusLittleBox.label = "SVE: Real Domain: " + QueryReturn.domain;
 				statusLittleBox.style.color = "red";
@@ -979,12 +979,11 @@ function SVE_DisplayResult() {
 				}
 			}
 			
+			statusText.value += " (User \"" + SVE_GetUser(FromHdr) + "\" not checked.";
+			statusText.value += " Do you trust this domain?)";
+			
 			if (QueryReturn.trustedForwarder)
 				statusText.value += " (via " + QueryReturn.trustedForwarder + ")";
-			if (QueryReturn.method == "spf")
-				statusText.value += " [SPF]";
-			if (QueryReturn.method == "dk")
-				statusText.value += " [DomainKeys]";
 			break;
 		case "fail":
 			statusText.value = "This does not appear to be a legitimate <" + QueryReturn.domain + "> email.";
@@ -1027,10 +1026,10 @@ function SVE_DisplayResult() {
 	if (IsViaMailList)
 	switch (QueryReturn.result) {
 		case "pass":
-			statusText.value = "Message is verified from a <" + QueryReturn.domain + "> mail list.";
+			statusText.value = "Message is confirmed from a <" + QueryReturn.domain + "> mail list.";
 			statusText.style.color = null;
-			statusLink.value = "The original sender of mail-list email cannot be verified.";
-			statusLittleBox.label = "SVE: Mail List Verified: " + QueryReturn.domain;
+			statusLink.value = "The original sender of mail list email cannot be verified.";
+			statusLittleBox.label = "SVE: Mail List Confirmed: " + QueryReturn.domain;
 			statusLittleBox.style.color = "blue";
 			break;
 		default:
@@ -1152,6 +1151,11 @@ function SVE_GetDomain(emailaddress) {
 	var at = emailaddress.indexOf("@");
 	if (at == -1) return null;
 	return emailaddress.substr(at+1);
+}
+function SVE_GetUser(emailaddress) {
+	var at = emailaddress.indexOf("@");
+	if (at == -1) return null;
+	return emailaddress.substr(0, at);
 }
 
 function SPFSendDKQuery(helo, ip, email_from, email_envelope, dkheader, dkhash, func) {
