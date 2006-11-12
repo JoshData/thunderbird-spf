@@ -21,10 +21,31 @@ var spfConsoleService = Components.classes["@mozilla.org/consoleservice;1"].getS
 //SPF("64.4.240.67", "paypal.com", function(result) { alert(result.message); });
 
 function SPF(ip, domain, callback) {
+	var dnsLimit = new Object();
+	dnsLimit.counter = 0;
+	dnsLimit.check = function() {
+			if (this.exceeded()) {
+				SPF_Debug("SPF check exceeded maximum number of DNS queries allowed, checking " + ip + " for " + domain);
+				return false;
+			}
+			this.counter++;
+			return true;
+		};
+	dnsLimit.exceeded = function() {
+		// The spec says 10.  We do 11 to include the first DNS query to get the record itself.
+		return this.counter == 11;
+	};
+	
+	SPF2(ip, domain, callback, dnsLimit);
+}
+
+function SPF2(ip, domain, callback, dnsLimit) {
 	SPF_Debug("Begin SPF Test on " + ip + " for " + domain);
+	
 	// none, neutral, pass, fail, softfail, temperror, permerror
 	SPF_GetRecord(
 		domain,
+		dnsLimit,
 		function(record, queryError) {
 			if (record == null) {
 				if (queryError == null)
@@ -38,19 +59,23 @@ function SPF(ip, domain, callback) {
 			// It would be better to do a reverse DNS only when
 			// we get to that point in the processing, but then
 			// we're not in a position to do the lookup async.
-			if (record.usesPTR) {
-				reverseDNS(ip, function(data) { if (data == null) data = Array(0); SPF_DoCheck(record, ip, domain, data, callback, 0); });
+			if (record.usesPTR && dnsLimit.check()) {
+				reverseDNS(ip, function(data) { if (data == null) data = Array(0); SPF_DoCheck(record, ip, domain, data, callback, dnsLimit); });
 				return;
 			}
 			
-			SPF_DoCheck(record, ip, domain, null, callback, 0);
+			SPF_DoCheck(record, ip, domain, null, callback, dnsLimit);
 		});
 }
 
-function SPF_DoCheck(record, ip, domain, reversedns, callback, hops) {
-	if (hops == 5) { callback(new SPFResult("permerror", "The maximum number of SPF redirects was reached.", 0)); return; }
+function SPF_DoCheck(record, ip, domain, reversedns, callback, dnsLimit) {
+	if (dnsLimit.exceeded()) {
+		callback(new SPFResult("permerror", "SPF check exceeded maximum number of DNS queries.", 0));
+		return;
+	}
 	
 	var result = SPF_DoCheck2(record, ip, domain, reversedns);
+	
 	if (result != null) {
 		var message;
 		if (result == "+") message = "The sender was " + (!record.isguess ? "explicitly" : "implicitly") + " permitted by <" + domain + "> with SPF.";
@@ -70,7 +95,7 @@ function SPF_DoCheck(record, ip, domain, reversedns, callback, hops) {
 	}
 	
 	if (record["redirect"] != null) {
-		SPF(ip, SPF_ExpandDomainSpec(record["redirect"]), callback);
+		SPF2(ip, SPF_ExpandDomainSpec(record["redirect"]), callback, dnsLimit);
 		return;
 	}		
 	
@@ -96,7 +121,7 @@ function SPF_DoCheck2(record, ip, domain, reversedns) {
 	return null;
 }
 
-function SPF_GetRecord(domain, callback) {
+function SPF_GetRecord(domain, dnsLimit, callback) {
 	for (var i = 0; i < spfRecordCache.length; i++) {
 		if (spfRecordCache[i] == null) break;
 		if (spfRecordCache[i].domain == domain) {
@@ -106,6 +131,11 @@ function SPF_GetRecord(domain, callback) {
 		}
 	}
 	
+	if (!dnsLimit.check()) {
+		callback(null, "Maximum number of DNS queries exceeded.");
+		return;
+	}
+		
 	queryDNS(domain, "TXT",
 		function(txtrecords, mydata, queryError) {
 			if (txtrecords != null) {
@@ -114,7 +144,7 @@ function SPF_GetRecord(domain, callback) {
 					if (txtrecords[i] == "v=spf1" || SPF_StartsWith(txtrecords[i], "v=spf1 ")) {
 						txtrecords[i] = txtrecords[i].substr(6); // chop off v=spf1
 						SPF_Debug(" Found: " + txtrecords[i]);
-						ParseSPFRecord(txtrecords[i], domain, callback, false);
+						ParseSPFRecord(txtrecords[i], domain, callback, false, dnsLimit);
 						return;
 					}
 				}
@@ -124,7 +154,7 @@ function SPF_GetRecord(domain, callback) {
 				callback(null, queryError);
 			} else if (SPF_GUESS) {
 				SPF_Debug(" Using Guess Mechanisms");
-				ParseSPFRecord("a/24 mx/24", domain, callback, true);
+				ParseSPFRecord("a/24 mx/24", domain, callback, true, dnsLimit);
 			} else {
 				SPF_Debug(" No 'v=spf1' TXT Record Found");
 				callback(null);
@@ -133,7 +163,7 @@ function SPF_GetRecord(domain, callback) {
 	
 }
 
-function ParseSPFRecord(record, domain, callback, isguess) {
+function ParseSPFRecord(record, domain, callback, isguess, dnsLimit) {
 	var recobj = new SPFRecord();
 	recobj.isguess = isguess;
 	
@@ -159,7 +189,7 @@ function ParseSPFRecord(record, domain, callback, isguess) {
 	var mech = recobj.firstMechanism;
 	while (mech != null) {
 		if (mech.startResolving != null)
-			mech.startResolving(doneFunc);
+			mech.startResolving(dnsLimit, doneFunc);
 		mech = mech.nextMechanism;
 	}
 	
@@ -196,12 +226,15 @@ function ProcessTerm(term, recobj, domain) {
 					var incresult = SPF_DoCheck2(mech.include, ip, domain, reversedns);
 					return (incresult == "+");
 				});
-			mech.startResolving = function(callbackWhenAllDone) {
+			mech.startResolving = function(dnsLimit, callbackWhenAllDone) {
 				SPF_GetRecord(
 					target,
+					dnsLimit,
 					function(record) {
-						mech.include = record;
-						if (record.usesPTR) recobj.usesPTR = true;
+						if (record != null) {
+							mech.include = record;
+							if (record.usesPTR) recobj.usesPTR = true;
+						}
 						if (--recobj.needsResolving == 0) callbackWhenAllDone();
 					});
 			};
@@ -232,7 +265,12 @@ function ProcessTerm(term, recobj, domain) {
 					}
 					return false;
 				} );
-			mech.startResolving = function(callbackWhenAllDone) {
+			mech.startResolving = function(dnsLimit, callbackWhenAllDone) {
+				if (!dnsLimit.check()) {
+					if (--recobj.needsResolving == 0) callbackWhenAllDone();
+					return;
+				}
+				
 				queryDNS(domcidr.domain, domcidr.addrType,
 					function(dnsrecords) {
 						if (dnsrecords == null) { dnsrecords = Array(0); }
@@ -245,6 +283,11 @@ function ProcessTerm(term, recobj, domain) {
 								recobj.needsResolving++;
 								SPF_Debug(" Resolving Host for '" + term + "': " + dnsrecords[i].host);
 								domain2 = dnsrecords[i].host;
+								
+								if (!dnsLimit.check()) {
+									if (--recobj.needsResolving == 0) callbackWhenAllDone();
+									return;
+								}
 								queryDNS(domain2, "A",
 									function(dnsrecords2) {
 										SPF_Debug(" Resolved Host for '" + term + "': " + domain2);
