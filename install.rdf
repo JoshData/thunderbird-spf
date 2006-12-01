@@ -10,7 +10,7 @@
 
 		<em:version>0.8.0</em:version>
 
-		<em:creator>Joshua Tauberer (jt@occams.info)</em:creator>
+		<em:creator>Joshua Tauberer (http://razor.occams.info)</em:creator>
 		<em:homepageURL>http://razor.occams.info/code/spf</em:homepageURL>
 		
 		<em:optionsURL>chrome://spf/content/options.xul</em:optionsURL>
