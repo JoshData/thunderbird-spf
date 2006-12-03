@@ -44,6 +44,7 @@ var usedk = "";
 var warnunverified;
 var onlystatusbar;
 var sve_internal_mtas;
+var sve_internal_mtas_configured;
 
 // GLOBAL VARIABLES
 // Yes it's a bad way to program, but it seems necessary in order
@@ -122,8 +123,13 @@ function spfLoadSettings() {
 	}
 	
 	sve_internal_mtas = Array(0);
-	if (prefs.getPrefType("spf.internal_mtas") == prefs.PREF_STRING)
-		sve_internal_mtas = prefs.getCharPref("spf.internal_mtas").split(',');
+	sve_internal_mtas_configured = false;
+	if (prefs.getPrefType("spf.internal_mtas") == prefs.PREF_STRING) {
+		var p = prefs.getCharPref("spf.internal_mtas");
+		if (p != "")
+			sve_internal_mtas = p.split(',');
+	}
+	if (sve_internal_mtas.length > 0) sve_internal_mtas_configured = true;
 	sve_internal_mtas.push("127.0.0.0/24");
 	sve_internal_mtas.push("192.168.0.0/16");
 	sve_internal_mtas.push("172.16.0.0/12");
@@ -464,9 +470,7 @@ function SVE_StartCheck() {
 		return;
 	}
 
-	SVE_QuerySPF(HeloName, IPAddr,
-		FromHdr, EnvFrom != null && EnvFrom != FromHdr ? EnvFrom : null,
-		"SVE_OnQuerySPFComplete()");
+	SVE_BeginCheck();
 	
 	// Protect all links.  This was an interesting idea, but it's disabled for now.
 	// SVE_ProtectLinks(document.getElementById("messagepane").contentDocument);
@@ -925,7 +929,7 @@ function SVE_DisplayResult() {
 
 	// When the sender is not verified and the forwarder is not trusted, then
 	// show the internal network server link.
-	if (QueryReturn.result != "pass" && QueryReturn.method != "surbl" && !QueryReturn.trustedForwarder) {
+	if (QueryReturn.result != "pass" && QueryReturn.result != "phishing" && !QueryReturn.trustedForwarder) {
 			
 		reverseDNS(IPAddr, function(hostnames) {
 			if (hostnames == null || hostnames.length == 0) return;
@@ -935,7 +939,7 @@ function SVE_DisplayResult() {
 			statusTrust.mta = IPAddr;
 			statusTrust.reversedns = hostnames[0];
 			
-			if (recentSenderIps[hostnames[0]] != "ignore") {
+			if (recentSenderIps[hostnames[0]] != "ignore" && !sve_internal_mtas_configured) {
 				if (recentSenderIps[hostnames[0]] == null) recentSenderIps[hostnames[0]] = 0;
 				recentSenderIps[hostnames[0]]++;
 				if (recentSenderIps[hostnames[0]] > 5) {
@@ -1009,10 +1013,10 @@ function SVE_DisplayResult() {
 			statusLittleBox.style.color = "red";
 			break;
 		case "phishing":
-			statusText.value = "This sender is a known malicious phisher.  Discard this email.";
+			statusText.value = "This sender is a known malicious spammer or phisher.  Discard this email.";
 			statusText.style.color = "red";
 			statusLink.value = QueryReturn.comment;
-			statusLittleBox.label = "SVE: Phishing Attack";
+			statusLittleBox.label = "SVE: Spam/Phishing Attack";
 			statusLittleBox.style.color = "red";
 			break;
 		default:
@@ -1045,6 +1049,64 @@ function SVE_DisplayResult() {
 	}
 }
 
+function SVE_BeginCheck() {
+	SVE_CheckRBLs();
+}
+
+function SVE_CheckRBLs() {
+	statusText.value = "Checking sender in SURBL/Spamhaus spam and phishing lists...";
+	statusLittleBox.label = "SVE: Checking RBLs...";
+	
+	SVE_CheckSURBL();
+}
+
+function SVE_CheckSURBL() {
+	// Check the SURBL phishing list, which includes (as of 10-2006)
+	// MailPolice and PhishTank.
+	queryDNS(
+		SVE_GetDomain(FromHdr) + ".multi.surbl.org",
+		"A",
+		function(addr) {
+			if (addr == null) {
+				SVE_CheckSpamhaus();
+			} else {
+				SVE_SetStatusFromRBL("The domain <" + SVE_GetDomain(FromHdr) + "> is listed in the SURBL list of malicious spam and phishing scams.");
+				SVE_OnQueriesComplete();
+			}
+		});
+}
+
+function SVE_CheckSpamhaus() {
+	// Check Spamhaus's SBL+XBL blacklist.
+	queryDNS(
+		IPAddr.split('.').reverse().join('.') + ".sbl-xbl.spamhaus.org",
+		"A",
+		function(addr) {
+			if (addr == null) {
+				SVE_CheckSPF();
+			} else {
+				SVE_SetStatusFromRBL("The IP address of the sender of this message is listed in the Spamhaus blocklist.");
+				SVE_OnQueriesComplete();
+			}
+		});
+
+	
+}
+
+function SVE_SetStatusFromRBL(message) {
+	QueryReturn = new Object();
+	QueryReturn.result = "phishing";
+	QueryReturn.comment = message;
+	QueryReturn.method = "rbl";
+	QueryReturn.couldTryDK = 0;
+}
+
+function SVE_CheckSPF() {
+	SVE_QuerySPF(HeloName, IPAddr,
+		FromHdr, EnvFrom != null && EnvFrom != FromHdr ? EnvFrom : null,
+		"SVE_OnQuerySPFComplete()");
+}
+
 function SVE_QuerySPF(helo, ip, email_from, email_envelope, func) {
 	// Query the email from: first.  If that doesn't pass,
 	// then query the email envelope.  If that also doesn't
@@ -1053,25 +1115,6 @@ function SVE_QuerySPF(helo, ip, email_from, email_envelope, func) {
 	statusText.value = "Performing SPF verification...";
 	statusLittleBox.label = "SVE: Checking SPF...";
 	
-	// Check the SURBL phishing list, which includes (as of 10-2006)
-	// MailPolice and PhishTank.
-	queryDNS(
-		SVE_GetDomain(email_from) + ".multi.surbl.org",
-		"A",
-		function(addr) {
-			if (addr == null) return;
-			alert("The domain <" + SVE_GetDomain(email_from) + "> is listed in the SURBL list of malicious spam and phishing scams.  It is likely this message was written with malicious intentions.  It is advised that you do not reply or open any links in the email.");
-		});
-	
-	// Check Spamhaus's SBL+XBL blacklist.
-	queryDNS(
-		ip.split('.').reverse().join('.') + ".sbl-xbl.spamhaus.org",
-		"A",
-		function(addr) {
-			if (addr != null)
-				alert("The IP address of the sender of this message is listed in the Spamhaus blocklist.  It is likely this message was written with malicious intentions.  It is advised that you do not reply or open any links in the email.");
-		});
-
 	// Remember what message we're looking at now.  If the
 	// user moves on to another message while we're waiting
 	// for some asynchronous operation to finish, discard
