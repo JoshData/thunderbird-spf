@@ -1,7 +1,8 @@
 <?xml version="1.0"?>
+<!DOCTYPE window SYSTEM "chrome://spf/locale/xulstrings.dtd">
 <?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
 <window
-    title="Sender Verification Extension: Internal Network Server"
+    title="&extension.name; &mta.title;"
 	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
 	>
 	
@@ -9,28 +10,23 @@
 	
 	<vbox flex="1" style="width: 350px">
 	
-	<label class="header">Recognizing Internal Network Servers</label>
+	<label class="header">&mta.header.one;</label>
 	
-	<description>The email you were viewing was rejected because the apparent sender of the email
-	was not authorized to use the domain name found in the "From" line.  But the apparent
-	sender might not be the sender, but a mail server run by your ISP.</description>  
+	<description>&mta.one;</description>  
 	
-	<description>If the server <label id="servername" style="font-weight: bold"/> is run by your internet service provider, please follow the instructions below.  You can tell by the name.  If the name doesn't look like the name of your ISP, just say Nevermind below.</description>
+	<description>&mta.two.a; <label id="servername" style="font-weight: bold"/> &mta.two.b;</description>
 
-	<label class="header">How do I correct the problem?</label>
+	<label class="header">&forwarders.header.two;</label>
 
-	<description>You can tell this extension which servers are a part of your
-	internet service provider to avoid this problem.  Click <i>Internal Network Server</i>
-	to remember that this server is in your internal network.  Otherwise, click <i>Nevermind</i>.</description>
+	<description>&mta.three;</description>
 	
-	<description>You can edit the list of internal network servers by going to Tools | Extensions and opening
-	the options for the Sender Verification Extension.</description>
+	<description>&forwarders.howtoedit;</description>
 	
 	<hbox>
 
-	<button label="Internal Network Server" oncommand="doAddList(window.opener.mta, 'spf.internal_mtas', 'spf.host.'); window.close()" id="btnAdd"/>
+	<button label="&mta.accept;" oncommand="doAddList(window.opener.mta, 'spf.internal_mtas', 'spf.host.'); window.close()" id="btnAdd"/>
 	
-	<button label="Nevermind" oncommand="window.close()"/>
+	<button label="&forwarders.nevermind;" oncommand="window.close()"/>
 	
 	</hbox>
 	

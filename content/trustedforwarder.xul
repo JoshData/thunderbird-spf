@@ -1,7 +1,8 @@
 <?xml version="1.0"?>
+<!DOCTYPE window SYSTEM "chrome://spf/locale/xulstrings.dtd">
 <?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
 <window
-    title="SPF Extension: Trusted Forwarders"
+    title="&extension.name; &forwarders.title;"
 	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
 	>
 	
@@ -9,31 +10,23 @@
 	
 	<vbox flex="1" style="width: 350px">
 	
-	<label class="header">Recognizing Trusted Forwarders</label>
+	<label class="header">&forwarders.header.one;</label>
 	
-	<description>The email you were viewing was rejected because the apparent sender of the email
-	was not authorized to use the domain name found in the From: header.  But the apparent
-	sender might be wrong.  This happens often with mail lists, because the mail list servers
-	aren't explicitly permitted to use the domain names of the emails they forward.</description>
+	<description>&forwarders.one;</description>
 
-	<description>If <label id="servername" style="font-weight: bold"/> is the server for a mail list or mail forwarder that
-	you subscribe to, and if you trust the server's administrators to not author malicious emails,
-	then continue reading.</description>
+	<description>&forwarders.two.a; <label id="servername" style="font-weight: bold"/> &forwarders.two.b;</description>
 
-	<label class="header">How do I correct the problem?</label>
+	<label class="header">&forwarders.header.two;</label>
 
-	<description>You can tell the Thunderbird SPF Extension which servers are mail lists/forwarders that you trust.
-	Click <i>Trusted Forwarder</i> to remember that this server is a trusted forwarder.
-	Otherwise, click <i>Nevermind</i>.</description>
+	<description>&forwarders.three;</description>
 	
-	<description>You can edit the list of trusted forwarders by going to Tools | Extensions and opening
-	the options for the Sender Verification Extension.</description>
+	<description>&forwarders.howtoedit;</description>
 	
 	<hbox>
 	
-	<button label="Trusted Forwarder" oncommand="doAddList(window.opener.mta, 'spf.forwarding_mtas', 'spf.forwarder.'); window.close()" id="btnAdd"/>
+	<button label="&forwarders.accept;" oncommand="doAddList(window.opener.mta, 'spf.forwarding_mtas', 'spf.forwarder.'); window.close()" id="btnAdd"/>
 	
-	<button label="Nevermind" oncommand="window.close()"/>
+	<button label="&forwarders.nevermind;" oncommand="window.close()"/>
 	
 	</hbox>
 	

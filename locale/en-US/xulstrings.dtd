@@ -1,0 +1,50 @@
+<!ENTITY extension.name "Sender Verification Extension">
+
+<!ENTITY header.title "Sender Verification:">
+<!ENTITY header.loading "Loading...">
+<!ENTITY menu.name "Verify Sender (SPF/DK)">
+<!ENTITY menu.key "V">
+
+<!ENTITY options.title "Options">
+<!ENTITY options.checkeveryemail "Check Every Email">
+<!ENTITY options.usedk "Check DomainKeys Signatures (Small bits of your emails are sent over the Internet; see the privacy warning on the website)">
+<!ENTITY options.popups "Show Popup Warnings for Unverified Emails">
+<!ENTITY options.usestatusbar "Show Verification Result in Status Bar">
+<!ENTITY options.mtas "Internal Network Servers:">
+<!ENTITY options.remove "Remove">
+<!ENTITY options.add "Add">
+<!ENTITY options.mtainfo "These are IP addresses of servers in your internal network. (You may use CIDR and wildcards, e.g. 123.456.789.* or 123.456.789.0/24)">
+<!ENTITY options.forwarders "Forwarding Hosts:">
+<!ENTITY options.forwardersinfo "These are <b>hostnames</b> of servers that forward mail to you, including mail list servers and mail forwarders.">
+<!ENTITY options.verificationserver "DK Verification Server:">
+<!ENTITY options.verificationserverinfo "This is the address of the server which will be contacted to perform DomainKeys verifications if Check DomainKeys Signatures is checked above.  Leave blank to use the default server.">
+<!ENTITY options.dns "DNS Server:">
+<!ENTITY options.dnsinfo "Optionally provide the IP or hostname of your own DNS server.  Leave blank to auto-detect.">
+
+<!ENTITY forwarders.title "Trusted Forwarders">
+<!ENTITY forwarders.header.one "Recognizing Trusted Forwarders">
+<!ENTITY forwarders.one "The email you were viewing was rejected because the apparent sender of the email
+	was not authorized to use the domain name found in the From: header.  But the apparent
+	sender might be wrong.  This happens often with mail lists, because the mail list servers
+	aren't explicitly permitted to use the domain names of the emails they forward.">
+<!ENTITY forwarders.two.a "If">
+<!ENTITY forwarders.two.b "is the server for a mail list or mail forwarder that you subscribe to, and if you trust the server's administrators to not author malicious emails, then continue reading.">
+<!ENTITY forwarders.three "You can tell the Thunderbird SPF Extension which servers are mail lists/forwarders that you trust. Click Trusted Forwarder to remember that this server is a trusted forwarder. Otherwise, click Nevermind.">
+<!ENTITY forwarders.accept "Trusted Forwarder">
+
+<!ENTITY mta.title "Internal Network Servers">
+<!ENTITY mta.header.one "Recognizing Internal Network Servers">
+<!ENTITY mta.one "The email you were viewing was rejected because the apparent sender of the email
+	was not authorized to use the domain name found in the From line.  But the apparent
+	sender might not be the sender, but a mail server run by your ISP.">
+<!ENTITY mta.two.a "If the server">
+<!ENTITY mta.two.b "is run by your internet service provider, please follow the instructions below.  You can tell by the name.  If the name doesn't look like the name of your ISP, just say Nevermind below.">
+<!ENTITY mta.three "You can tell this extension which servers are a part of your
+	internet service provider to avoid this problem.  Click Internal Network Server
+	to remember that this server is in your internal network.  Otherwise, click Nevermind.">
+<!ENTITY mta.accept "Internal Network Server">
+
+<!ENTITY forwarders.howtoedit "You can edit this setting by going to Tools | Extensions and opening the options for this extension.">
+<!ENTITY forwarders.header.two "How do I correct the problem?">
+<!ENTITY forwarders.nevermind "Nevermind">
+

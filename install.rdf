@@ -20,7 +20,7 @@
 				<em:package>content/</em:package>
 			</Description>
 		</em:file>
-
+		
 		<em:targetApplication>
 			<Description>
 				<!-- Thunderbird -->

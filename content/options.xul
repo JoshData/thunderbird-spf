@@ -1,8 +1,9 @@
 <?xml version="1.0"?>
+<!DOCTYPE window SYSTEM "chrome://spf/locale/xulstrings.dtd">
 <?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
 <?xml-stylesheet href="chrome://communicator/skin/" type="text/css"?>
 <dialog id="spfOptions"
-        title="SPF Extension Options"
+        title="&extension.name; &options.title;"
 		buttons="accept"
         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
         onload="setFields();"
@@ -152,10 +153,10 @@
 
   <vbox flex="1" style="width: 500px">
 	  <vbox>
-  	  <checkbox label="Check Every Email" id="spf_checkonload"/>
-	  <checkbox label="Check DomainKeys Signatures (Small bits of your emails are sent over the Internet; see the privacy warning on the website)" id="spf_usedk"/>
-	  <checkbox label="Show Popup Warnings for Unverified Emails" id="spf_warnunverified"/>
-	  <checkbox label="Show Status Only in Status Bar" id="spf_onlystatusbar"/>
+  	  <checkbox label="&options.checkeveryemail;" id="spf_checkonload"/>
+	  <checkbox label="&options.usedk;" id="spf_usedk"/>
+	  <checkbox label="&options.popups;" id="spf_warnunverified"/>
+	  <checkbox label="&options.usestatusbar;" id="spf_onlystatusbar"/>
 	  </vbox>
   
   	  <separator class="groove-thin"/>
@@ -163,30 +164,29 @@
 	  <hbox>
   
 		  <vbox style="width: 260px">
-		  <label value="Internal Network Servers:" class="header"/>
+		  <label value="&options.mtas;" class="header"/>
 		  <hbox>
 			<listbox id="spf_mta" rows="3" style="width: 200px"/>
-			<button label="Remove" oncommand="doRemoveMta()"/>
+			<button label="&options.remove;" oncommand="doRemoveMta()"/>
 		  </hbox>
 		  <hbox>
 			<textbox id="spf_mta_add" style="width: 200px"/>
-			<button label="Add" oncommand="doAddMta()"/>
+			<button label="&options.add;" oncommand="doAddMta()"/>
 		  </hbox>
-		  <description>These are <b>IP addresses</b> of servers in your internal network.
-		  (You may use CIDR and wildcards, e.g. 123.456.789.* or 123.456.789.0/24)</description>	  
+		  <description>&options.mtainfo;</description>	  
 		  </vbox>
 		  
 		  <vbox style="width: 260px">
-		  <label value="Forwarding Hosts:" class="header"/>
+		  <label value="&options.forwarders;" class="header"/>
 		  <hbox>
 			<listbox id="spf_forwarder" rows="3" style="width: 200px"/>
-			<button label="Remove" oncommand="doRemoveForwarder()"/>
+			<button label="&options.remove;" oncommand="doRemoveForwarder()"/>
 		  </hbox>
 		  <hbox>
 			<textbox id="spf_forwarder_add" style="width: 200px"/>
-			<button label="Add" oncommand="doAddForwarder()"/>
+			<button label="&options.add;" oncommand="doAddForwarder()"/>
 		  </hbox>
-		  <description>These are <b>hostnames</b> of servers that forward mail to you, including mail list servers and mail forwarders.</description>	  
+		  <description>&options.forwardersinfo;</description>	  
 		  </vbox>
 	  </hbox>
 		  
@@ -194,18 +194,18 @@
 	  <separator class="groove-thin"/>
 	  
 	  <vbox>
-		<label value="DK Verification Server:" class="header"/>
+		<label value="&options.verificationserver;" class="header"/>
 		<textbox id="spf_queryserver" style="width: 250px"/>
 	  </vbox>
-	  <description>This is the address of the server which will be contacted to perform DomainKeys verifications if Check DomainKeys Signatures is checked above.  Leave blank to use the default server.</description>	  
+	  <description>&options.verificationserverinfo;</description>	  
 
 	  <separator class="groove-thin"/>
 	  
 	  <vbox>
-		<label value="DNS Server:" class="header"/>
+		<label value="&options.dns;" class="header"/>
 		<textbox id="spf_dnsserver" style="width: 250px"/>
 	  </vbox>
-	  <description>Optionally provide the IP or hostname of your own DNS server.  Leave blank to auto-detect.</description>	  
+	  <description>&options.dnsinfo;</description>	  
 	  
 	 </vbox>
 </dialog>

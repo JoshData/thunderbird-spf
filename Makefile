@@ -3,13 +3,15 @@ JARSOURCES=\
 	content/md5.js content/sha1.js content/dns.js content/spf.js content/domainkeys.js content/sve.js  \
 	content/BigInt.js content/Barrett.js content/RSA.js \
 	content/spf.xul content/options.xul content/statusoverlay.xul \
-	content/misc.js content/trustedmta.xul content/trustedforwarder.xul
+	content/misc.js content/trustedmta.xul content/trustedforwarder.xul \
+	locale/*/*
 
 XPISOURCES=\
 	install.rdf \
 	install.js \
+	chrome.manifest \
 	chrome/sve.jar
-
+	
 all: sve.xpi package
 
 sve.xpi: $(XPISOURCES)
@@ -19,14 +21,16 @@ chrome/sve.jar: $(JARSOURCES)
 	mkdir -p chrome
 	zip -q chrome/sve.jar $(JARSOURCES)
 
-package: sve.xpi chrome/sve.jar
+package: sve.xpi
 	mkdir -p archive
 	tar -C .. -czf archive/thunderbird-sve-`date +%F`.tgz \
 		 --exclude thunderbird-spf/content/.svn \
 		thunderbird-spf/chrome \
 		thunderbird-spf/content \
+		thunderbird-spf/locale \
 		thunderbird-spf/install.js \
 		thunderbird-spf/install.rdf \
+		thunderbird-spf/chrome.manifest \
 		thunderbird-spf/Makefile \
 		thunderbird-spf/query.cgi \
 		thunderbird-spf/README \

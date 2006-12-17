@@ -8,7 +8,7 @@
 
 <RDF:Description about="urn:mozilla:package:spf" 
 	  chrome:displayName="Sender Verification Extension" 
-	  chrome:author="Joshua Tauberer (tauberer@for.net)" 
+	  chrome:author="Joshua Tauberer (http://razor.occams.info)" 
 	  chrome:name="spf"
 	  chrome:extension="true"
 	  chrome:description="Verifies emails with SPF and DomainKeys.  Protects you from phishing."> 

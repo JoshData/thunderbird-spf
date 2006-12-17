@@ -1,4 +1,5 @@
 <?xml version="1.0"?>
+<!DOCTYPE window SYSTEM "chrome://spf/locale/xulstrings.dtd">
 <overlay id="spfOverlay" 
 	  xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
 	  xmlns:html="http://www.w3.org/1999/xhtml">
@@ -24,13 +25,13 @@
 					onclick="spfLinkDiv = getElementById('spfLinkDiv'); if (spfLinkDiv.style.display) { spfLinkDiv.style.display = null; this.setAttribute('class', 'expandHeaderViewButton'); } else { spfLinkDiv.style.display = 'none'; this.setAttribute('class', 'collapsedHeaderViewButton'); }"/>
 			</vbox>
 			<hbox class="headerNameBox" align="start">
-				<label class="headerName" value=" Sender Verification:" flex="1"/>
+				<label class="headerName" value=" &header.title;" flex="1"/>
 				<vbox pack="start">
-					<description id="spfStatusText" value="Loading..."/>
+					<description id="spfStatusText" value="&header.loading;"/>
 					
 					<vbox id="spfLinkDiv" style="display: none; cursor: pointer;">
-						<description id="spfLink">Loading...</description>
-						<description id="spfTrust" onclick="window.mta=this.mta; window.reversedns = this.reversedns; var w = window.open('chrome://spf/content/trusted' + this.linktype + '.xul', '', 'chrome');" style="cursor: pointer; color: blue">Loading...</description>
+						<description id="spfLink">&header.loading;</description>
+						<description id="spfTrust" onclick="window.mta=this.mta; window.reversedns = this.reversedns; var w = window.open('chrome://spf/content/trusted' + this.linktype + '.xul', '', 'chrome');" style="cursor: pointer; color: blue">&header.loading;</description>
 					</vbox>
 					
 					<description id="spfDomainWarning" value="" style="display: none; color: red"/>
@@ -40,15 +41,15 @@
 	</hbox>
 	
 	<menupopup id="taskPopup">
-		<command id="sp_GoMenu_Command" label="Verify Sender (SPF/DK)" oncommand="spfGo(true);" />
+		<command id="sp_GoMenu_Command" label="&menu.name;" oncommand="spfGo(true);" />
 	
 		<keyset>
-			<key id="spf_GoMenu_Key" key="V" modifiers="shift control" command="sp_GoMenu_Command"/>
+			<key id="spf_GoMenu_Key" key="&menu.key;" modifiers="shift control" command="sp_GoMenu_Command"/>
 		</keyset>
 	
 	   <menuseparator id="spf_GoMenuSeparator"/>
 		<menuitem id="spf_GoMenu"
-			 accesskey="V"
+			 accesskey="&menu.key;"
 			 key="spf_GoMenu_Key"
 			 command="sp_GoMenu_Command"
 			 />
