@@ -1,7 +1,7 @@
 /*
  * MOZILLA THUNDERBIRD EXTENSION FOR SENDER VERIFICATION
  *
- * Copyright 2004-2005 Joshua Tauberer <tauberer@for.net>
+ * Copyright 2004-2005 Joshua Tauberer <http://razor.occams.info>
  *
  * Feel free to use and copy and modify this file however you like.
  *

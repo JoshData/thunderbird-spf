@@ -1,14 +1,10 @@
 /*
  * DOMAINKEYS LIBRARY IN JAVASCRIPT
  *
- * Copyright 2005 Joshua Tauberer <tauberer@for.net>
+ * Copyright 2005 Joshua Tauberer <http://razor.occams.info>
  *
  * Feel free to use this file however you want, but
  * credit would be nice.
- *
- * This code incorporates intellectual property owned by
- * Yahoo! and licensed pursuant to the Yahoo! DomainKeys Patent License
- * Agreement.
  */
 
 setMaxDigits(256); // for Bigint

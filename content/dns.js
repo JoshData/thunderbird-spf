@@ -1,7 +1,7 @@
 /*
  * DNS LIBRARY IN JAVASCRIPT
  *
- * Copyright 2005 Joshua Tauberer <tauberer@for.net>
+ * Copyright 2005 Joshua Tauberer <http://razor.occams.info>
  *
  * Feel free to use this file however you want, but
  * credit would be nice.
