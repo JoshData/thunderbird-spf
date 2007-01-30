@@ -150,20 +150,47 @@
 		doAddList("spf_forwarder", "spf_forwarder_add", "spf.forwarding_mtas", "spf.forwarder.");
 	}
   </script>
-
-  <vbox flex="1" style="width: 500px">
-	  <vbox>
-  	  <checkbox label="&options.checkeveryemail;" id="spf_checkonload"/>
-	  <checkbox label="&options.usedk;" id="spf_usedk"/>
-	  <checkbox label="&options.popups;" id="spf_warnunverified"/>
-	  <checkbox label="&options.usestatusbar;" id="spf_onlystatusbar"/>
-	  </vbox>
   
-  	  <separator class="groove-thin"/>
+  
+	<tabbox>
+	  <tabs>
+		 <tab label="&options.general;"/>
+		 <tab label="&options.mtas;"/>
+		 <tab label="&options.forwarders;"/>
+	  </tabs>
 	  
-	  <hbox>
-  
-		  <vbox style="width: 260px">
+	  <tabpanels>
+	  	 <!-- General -->
+		 <tabpanel>
+			  <vbox>
+			  <checkbox label="&options.checkeveryemail;" id="spf_checkonload"/>
+			  <checkbox label="&options.usedk;" id="spf_usedk"/>
+			  <description style="margin-left: 2em">&options.usedk.info;</description>
+			  <checkbox label="&options.popups;" id="spf_warnunverified"/>
+			  <checkbox label="&options.usestatusbar;" id="spf_onlystatusbar"/>
+			  
+			  <separator class="groove-thin"/>
+			  
+			  <vbox>
+				<label value="&options.verificationserver;" class="header"/>
+				<textbox id="spf_queryserver" style="width: 10em"/>
+			  </vbox>
+			  <description style="width: 200px">&options.verificationserverinfo;</description>	  
+		
+			  <separator class="groove-thin"/>
+			  
+			  <vbox>
+				<label value="&options.dns;" class="header"/>
+				<textbox id="spf_dnsserver" style="width: 10em"/>
+			  </vbox>
+			  <description style="width: 200px">&options.dnsinfo;</description>	  
+
+	  		</vbox>
+		 </tabpanel>
+		 
+		 <!-- Internal MTAs -->
+		 <tabpanel>
+		  <vbox>
 		  <label value="&options.mtas;" class="header"/>
 		  <hbox>
 			<listbox id="spf_mta" rows="3" style="width: 200px"/>
@@ -173,10 +200,13 @@
 			<textbox id="spf_mta_add" style="width: 200px"/>
 			<button label="&options.add;" oncommand="doAddMta()"/>
 		  </hbox>
-		  <description>&options.mtainfo;</description>	  
+		  <description style="width: 200px">&options.mtainfo;</description>
 		  </vbox>
-		  
-		  <vbox style="width: 260px">
+		 </tabpanel>
+		 
+		 <!-- Trusted Forwarders -->
+		 <tabpanel>
+		  <vbox>
 		  <label value="&options.forwarders;" class="header"/>
 		  <hbox>
 			<listbox id="spf_forwarder" rows="3" style="width: 200px"/>
@@ -186,26 +216,11 @@
 			<textbox id="spf_forwarder_add" style="width: 200px"/>
 			<button label="&options.add;" oncommand="doAddForwarder()"/>
 		  </hbox>
-		  <description>&options.forwardersinfo;</description>	  
+		  <description style="width: 200px">&options.forwardersinfo;</description>	  
 		  </vbox>
-	  </hbox>
-		  
-
-	  <separator class="groove-thin"/>
-	  
-	  <vbox>
-		<label value="&options.verificationserver;" class="header"/>
-		<textbox id="spf_queryserver" style="width: 250px"/>
-	  </vbox>
-	  <description>&options.verificationserverinfo;</description>	  
-
-	  <separator class="groove-thin"/>
-	  
-	  <vbox>
-		<label value="&options.dns;" class="header"/>
-		<textbox id="spf_dnsserver" style="width: 250px"/>
-	  </vbox>
-	  <description>&options.dnsinfo;</description>	  
-	  
-	 </vbox>
+		 </tabpanel>
+		 
+	  </tabpanels>
+	</tabbox>
+	
 </dialog>

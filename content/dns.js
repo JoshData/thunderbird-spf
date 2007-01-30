@@ -257,8 +257,16 @@ function queryDNSRecursive(server, host, recordtype, callback, callbackdata, hop
 			return true;
 		}
 	}
+	
+	// allow server to be either a hostname or hostname:port
+	var server_hostname = server;
+	var port = 53;
+	if (server.indexOf(':') != -1) {
+		server_hostname = server.substring(0, server.indexOf(':'));
+		port = server.substring(server.indexOf(':')+1);
+	}
 
-	var ex = DNS_readAllFromSocket(server, 53, query, listener);
+	var ex = DNS_readAllFromSocket(server_hostname, port, query, listener);
 	if (ex != null) {
 	  alert(ex);
 	}
