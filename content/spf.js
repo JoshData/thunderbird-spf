@@ -49,9 +49,9 @@ function SPF2(ip, domain, callback, dnsLimit) {
 		function(record, queryError) {
 			if (record == null) {
 				if (queryError == null)
-					callback(new SPFResult("0", "Domain does not support SPF verification.", 0));
+					callback(new SPFResult("0", SPF_STRINGS.NOT_SUPPORTED(domain), 0));
 				else
-					callback(new SPFResult("E", "Could not get SPF info: " + queryError, 0));
+					callback(new SPFResult("E", SPF_STRINGS.ERROR(queryError), 0));
 				return;
 			}
 			
@@ -70,7 +70,7 @@ function SPF2(ip, domain, callback, dnsLimit) {
 
 function SPF_DoCheck(record, ip, domain, reversedns, callback, dnsLimit) {
 	if (dnsLimit.exceeded()) {
-		callback(new SPFResult("permerror", "SPF check exceeded maximum number of DNS queries.", 0));
+		callback(new SPFResult("permerror", SPF_STRINGS.DNS_EXCEEDED, 0));
 		return;
 	}
 	
@@ -78,19 +78,19 @@ function SPF_DoCheck(record, ip, domain, reversedns, callback, dnsLimit) {
 	
 	if (result != null) {
 		var message;
-		if (result == "+") message = "The sender was " + (!record.isguess ? "explicitly" : "implicitly") + " permitted by <" + domain + "> with SPF.";
-		else if (result == "-") message = "The sender was denied by <" + domain + "> by SPF.";
-		else if (result == "~") message = "The sender was not permitted by <" + domain + "> with SPF.";
-		else if (result == "?") message = "The sender could not be verified by <" + domain + "> using SPF.";
-		else if (result == "permerror") message = "The sender has a SPF configuration problem or uses an unsupported feature.";
-		else if (result == "temperror") message = "There was a temporary problem using SPF verification.";
+		if (result == "+") message = SPF_STRINGS.PASS(domain, record.isguess);
+		else if (result == "-") message = SPF_STRINGS.FAIL(domain);
+		else if (result == "~") message = SPF_STRINGS.SOFTFAIL(domain);
+		else if (result == "?") message = SPF_STRINGS.UNKNOWN(domain);
+		else if (result == "permerror") message = SPF_STRINGS.PERMERROR;
+		else if (result == "temperror") message = SPF_STRINGS.TEMPERROR;
 		
 		callback(new SPFResult(result, message, record.isguess));
 		return;
 	}
 	
 	if (record.isguess) {
-		callback(new SPFResult("0", "Domain <" + domain + "> does not support SPF verification.", 0));
+		callback(new SPFResult("0", SPF_STRINGS.NOT_SUPPORTED(domain), 0));
 		return;
 	}
 	
@@ -100,7 +100,7 @@ function SPF_DoCheck(record, ip, domain, reversedns, callback, dnsLimit) {
 	}		
 	
 	// Processing fell through to the end.
-	callback(new SPFResult("?", "The sender could not be verified by <" + domain + ">.", false));
+	callback(new SPFResult("?", SPF_STRINGS.UNKNOWN(domain), false));
 }
 
 function SPF_DoCheck2(record, ip, domain, reversedns) {
@@ -132,7 +132,7 @@ function SPF_GetRecord(domain, dnsLimit, callback) {
 	}
 	
 	if (!dnsLimit.check()) {
-		callback(null, "Maximum number of DNS queries exceeded.");
+		callback(null, SPF_STRINGS.DNS_EXCEEDED);
 		return;
 	}
 		

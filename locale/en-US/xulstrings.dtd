@@ -19,7 +19,7 @@
 <!ENTITY options.verificationserver "DK Verification Server:">
 <!ENTITY options.verificationserverinfo "This is the address of the server which will be contacted to perform DomainKeys verifications if Check DomainKeys Signatures is checked above.  Leave blank to use the default server.">
 <!ENTITY options.dns "DNS Server:">
-<!ENTITY options.dnsinfo "Optionally provide the IP or hostname of your own DNS server.  Leave blank to auto-detect.">
+<!ENTITY options.dnsinfo "Optionally provide the IP or hostname of your own DNS server.  Leave blank to auto-detect.  May require Thunderbird restart.">
 
 <!ENTITY forwarders.title "Trusted Forwarders">
 <!ENTITY forwarders.header.one "Recognizing Trusted Forwarders">

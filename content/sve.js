@@ -443,7 +443,7 @@ function SVE_StartCheck() {
 	// was legitimate when it was sent, or something illegitimate now might have
 	// (confusingly) been legitimate at the time.
 	if (DateHdr != null && new Date().getTime() - DateHdr > 1000*60*60*24*DAYS_TOO_OLD) {
-		statusText.value = SVE_STRINGS.MESSAGE_TO_OLD;
+		statusText.value = SVE_STRINGS.MESSAGE_TOO_OLD;
 		statusLittleBox.label = SVE_STRINGS.NOT_APPLICABLE2;
 		return;
 	}

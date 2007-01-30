@@ -1,7 +1,7 @@
 MOZILLA THUNDERBIRD EXTENSION FOR
        SENDER VERIFICATION
 
-By Joshua Tauberer, 2004-2006
+By Joshua Tauberer, 2004-2007
 
 http://razor.occams.info/code/spf
 
@@ -9,3 +9,6 @@ Feel free to use these files however you want.
 
 To create the XPI installer for Thunderbird, run make!
 
+Translations:
+
+Thanks to Eric Leu for providing translations in French!

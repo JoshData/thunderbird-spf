@@ -20,6 +20,7 @@
 var DNS_ROOT_NAME_SERVER = "J.ROOT-SERVERS.NET";
 var DNS_FOUND_NAME_SERVER_AUTOMATICALLY = 0;
 
+// Any settings changes aren't going to be picked up later.
 DNS_LoadPrefs();
 
 function DNS_LoadPrefs() {
@@ -164,7 +165,7 @@ function DNS_ReverseIPHostname(ip) {
 function queryDNSRecursive(server, host, recordtype, callback, callbackdata, hops) {
 	if (hops == 10) {
 		DNS_Debug("DNS: Maximum number of recursive steps taken in resolving " + host);
-		callback(null, callbackdata, "Too many hops.");
+		callback(null, callbackdata, DNS_STRINGS.TOO_MANY_HOPS);
 		return;
 	}
 	
@@ -214,13 +215,13 @@ function queryDNSRecursive(server, host, recordtype, callback, callbackdata, hop
 			if (status != 0) {
 				if (status == 2152398861) {
 					DNS_Debug("DNS: Resolving " + host + "/" + recordtype + ": DNS server " + server + " refused a TCP connection.");
-					callback(null, callbackdata, "DNS server " + server + " refused a TCP connection.");
+					callback(null, callbackdata, DNS_STRINGS.CONNECTION_REFUSED(server));
 				} else if (status == 2152398868) {
 					DNS_Debug("DNS: Resolving " + host + "/" + recordtype + ": DNS server " + server + " timed out on a TCP connection.");
-					callback(null, callbackdata, "DNS server " + server + " timed out on a TCP connection.");
+					callback(null, callbackdata, DNS_STRINGS.TIMED_OUT(server));
 				} else {
 					DNS_Debug("DNS: Resolving " + host + "/" + recordtype + ": Failed to connect to DNS server " + server + " with error code " + status + ".");
-					callback(null, callbackdata, "Error connecting to DNS server " + server + ".");
+					callback(null, callbackdata, DNS_STRINGS.SERVER_ERROR(server));
 				}
 				return;
 			}
@@ -228,7 +229,7 @@ function queryDNSRecursive(server, host, recordtype, callback, callbackdata, hop
 			this.process(data);
 			if (!this.done) {
 				DNS_Debug("DNS: Resolving " + host + "/" + recordtype + ": Response was incomplete.");
-				callback(null, callbackdata, "Incomplete response from " + server + ".");
+				callback(null, callbackdata, DNS_STRINGS.INCOMPLETE_RESPONSE(server));
 			}
 		},
 		process : function(data){

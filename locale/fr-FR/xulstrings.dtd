@@ -1,0 +1,48 @@
+<!ENTITY extension.name "Extention de Vérification d'Expéditeur">
+
+<!ENTITY header.title "Verification d'Expéditeur:">
+<!ENTITY header.loading "Chargement en cours...">
+<!ENTITY menu.name "Vérifier l'expéditeur (SPF/DK)">
+<!ENTITY menu.key "V">
+
+<!ENTITY options.title "Options">
+<!ENTITY options.checkeveryemail "Vérifier tous les courriers">
+<!ENTITY options.usedk "Vérifier les signatures DomainKeys (Des 'morceaux' de vos courriers sont envoyé sur Internet ; Voir l'avertissement de confidentialité sur la page du site Web)">
+<!ENTITY options.popups "Afficher la fenêtre d'avertissement pour les messages non-vérifiés">
+<!ENTITY options.usestatusbar "Montrer les résultats de la vérification dans la barre d'état">
+<!ENTITY options.mtas "Serveurs du réseau Interne:">
+<!ENTITY options.remove "Retirer">
+<!ENTITY options.add "Ajouter">
+<!ENTITY options.mtainfo "Voici les adresses IP de vos serveurs sur le réseau interne. (Vous pouvez utiliser CIDR et les jokers, ex: 123.456.789.* ou
+123.456.789.0/24)">
+<!ENTITY options.forwarders "Hébergeurs de renvois:">
+<!ENTITY options.forwardersinfo "Voici les noms <b>hostnames</b> des serveurs
+qui vous envoient du courrier, sont inclus les serveurs de liste de courriers et ceux de renvois.">
+<!ENTITY options.verificationserver "Vérification de serveurs DK:">
+<!ENTITY options.verificationserverinfo "Voici l'adresse du serveur qui sera contacté pour effectuer les vérifications DomainKeys si l'option de vérification des signatures DomainKeys est cochée ci-dessus. Laisser en blanc pour utiliser le serveur par défaut.">
+<!ENTITY options.dns "Serveur DNS:">
+<!ENTITY options.dnsinfo "En option, vous pouvez fournir l'IP ou le nom d'hôte de votre propre serveur DNS. Laisser en blanc pour une autodetection. Cela peut nécessiter le redémarrage de Thunderbird.">
+
+<!ENTITY forwarders.title "Renvoyeurs fiables">
+<!ENTITY forwarders.header.one "Identification des renvoyeurs fiables">
+<!ENTITY forwarders.one "Le courrier que vous lisiez a été rejeté car l'expéditeur apparent du courrier n'a pas été autorisé à utiliser le nom de domaine détecté dans l'entête De:
+Mais l'expéditeur peut être erroné. Ceci arrive souvent avec les listes de courriers car les serveurs d'envois de liste de courriers n'ont pas été explicitement autorisés à utiliser les noms de domaine des courriers qu'ils retransmetent.">
+<!ENTITY forwarders.two.a "Si">
+<!ENTITY forwarders.two.b "est un serveur de liste de courrier ou de renvois de courriers auquel vous êtes inscrit et si vous pouvez garantir que ses administrateurs ne sont pas auteurs de courriers nuisibles, alors continuez votre lecture.">
+<!ENTITY forwarders.three "Vous pouvez indiquer à l'Extention SPF de Thunderbird les serveurs de courriers/renvois auquel vous accordez votre confiance. Cliquer sur Renvoyeurs fiables afin de vous rappeler que ce serveur est fiable.
+Autrement, cliquez c'est sans importance.">
+<!ENTITY forwarders.accept "Renvoyeurs fiables">
+<!ENTITY mta.title "Serveurs du réseau Interne:">
+<!ENTITY mta.header.one "Identification des Serveurs du réseau Interne">
+<!ENTITY mta.one "Le courrier que vous lisiez a été rejeté car l'expéditeur apparent du courrier n'a pas été authorisé à utiliser le nom de domaine détecté à la ligne De: Mais, l'expéditeur apparent peut ne pas être en fait l'expéditeur sinon le serveur de courrier de votre FAI.">
+<!ENTITY mta.two.a "Si le serveur">
+<!ENTITY mta.two.b "est celui de votre fournisseur d'accés à internet, Merci de suivre les instructions suivantes. Vous pouvez tenter de le deviner par son nom. Si le nom ne ressemble pas à celui de votre FAI, répondez juste C'est sans importance ci-dessous.">
+<!ENTITY mta.three "Vous pouver indiquer à cette Extention (SPF) quels serveurs font partie de ceux de votre Fournisseur d'accés à internet pour éviter ce probleme. Cliquer sur Serveurs du réseau Interne pour enregistrer ce serveur comme faisant partie de votre réseau interne. Autrement, cliquez, c'est sans Importance.">
+<!ENTITY mta.accept "Serveurs du réseau Interne">
+
+<!ENTITY forwarders.howtoedit "Vous pouvez éditer cette configuration via Outils / Extentions et en ouvrant les options pour cette extention.">
+<!ENTITY forwarders.header.two "Comment puis-je corriger le probleme?">
+<!ENTITY forwarders.nevermind "C'est sans importance">
+
+
+
