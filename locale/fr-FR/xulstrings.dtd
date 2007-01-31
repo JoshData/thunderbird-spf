@@ -23,7 +23,7 @@ qui vous envoient du courrier, sont inclus les serveurs de liste de courriers et
 <!ENTITY options.verificationserver "Vérification de serveurs DK:">
 <!ENTITY options.verificationserverinfo "Voici l'adresse du serveur qui sera contacté pour effectuer les vérifications DomainKeys si l'option de vérification des signatures DomainKeys est cochée ci-dessus. Laisser en blanc pour utiliser le serveur par défaut.">
 <!ENTITY options.dns "Serveur DNS:">
-<!ENTITY options.dnsinfo "En option, vous pouvez fournir l'IP ou le nom d'hôte de votre propre serveur DNS. Laisser en blanc pour une autodetection. Cela peut nécessiter le redémarrage de Thunderbird.">
+<!ENTITY options.dnsinfo "En option, vous pouvez fournir l'IP ou le nom d'hôte de votre propre serveur DNS. Laisser en blanc pour une autodetection. Cela peut nécessiter le redémarrage de Thunderbird. Si vous êtes situé derrière un Pare-feu et que l'extention vous renvoie un message de 'TCP timeout', essayez d'utiliser ce paramètre: occams.info:9053">
 
 <!ENTITY forwarders.title "Renvoyeurs fiables">
 <!ENTITY forwarders.header.one "Identification des renvoyeurs fiables">
