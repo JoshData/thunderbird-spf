@@ -221,7 +221,7 @@ function spfGo(manual) {
 	if (checkonload == "no" && !manual) {
 		goMenu.hidden = false;
 		goMenuSep.hidden = false;
-		statusText.value = SVE_STRINGS.DO_VERIFY; // not visible...
+		statusText.childNodes[0].nodeValue = SVE_STRINGS.DO_VERIFY; // not visible...
 		return;
 	}
 
@@ -232,7 +232,7 @@ function spfGo(manual) {
 	
 	// Load the message service, and scan the message headers.
 
-	statusText.value = SVE_STRINGS.SCANNING_HEADERS;
+	statusText.childNodes[0].nodeValue = SVE_STRINGS.SCANNING_HEADERS;
 	statusLittleBox.label = SVE_STRINGS.SCANNING;
 	
 	FromHdr = null;
@@ -407,7 +407,7 @@ function spfGo(manual) {
 	try {
 		msgService.streamMessage(uri, async_consumer, msgWindow, null, false, null)
 	} catch (ex) {
-		statusText.value = SVE_STRINGS.NOT_APPLICABLE1;
+		statusText.childNodes[0].nodeValue = SVE_STRINGS.NOT_APPLICABLE1;
 		statusLittleBox.label = SVE_STRINGS.NOT_APPLICABLE2;
 		return;
 	}
@@ -427,7 +427,7 @@ function SVE_StartCheck() {
 	
 	// What if there is no From: header
 	if (!FromHdr) {
-		statusText.value = SVE_STRINGS.CANNOT_FIND_FROM;
+		statusText.childNodes[0].nodeValue = SVE_STRINGS.CANNOT_FIND_FROM;
 		statusText.style.color = "blue";
 		statusLittleBox.label = SVE_STRINGS.NOT_APPLICABLE2;
 		return;
@@ -435,7 +435,7 @@ function SVE_StartCheck() {
 	
 	// If the message does not have a parseable date, flag an error.
 	/*if (!DateHdr) {
-		statusText.value = "Message date could not be determined.";
+		statusText.childNodes[0].nodeValue = "Message date could not be determined.";
 		return;
 	}*/
 	
@@ -443,14 +443,14 @@ function SVE_StartCheck() {
 	// was legitimate when it was sent, or something illegitimate now might have
 	// (confusingly) been legitimate at the time.
 	if (DateHdr != null && new Date().getTime() - DateHdr > 1000*60*60*24*DAYS_TOO_OLD) {
-		statusText.value = SVE_STRINGS.MESSAGE_TOO_OLD;
+		statusText.childNodes[0].nodeValue = SVE_STRINGS.MESSAGE_TOO_OLD;
 		statusLittleBox.label = SVE_STRINGS.NOT_APPLICABLE2;
 		return;
 	}
 	
 	// For completeness, if a message was sent too far in the future, flag a problem.
 	if (DateHdr != null && DateHdr - new Date().getTime() > 1000*60*60*24*DAYS_IN_THE_FUTURE) {
-		statusText.value = SVE_STRINGS.MESSAGE_IN_FUTURE;
+		statusText.childNodes[0].nodeValue = SVE_STRINGS.MESSAGE_IN_FUTURE;
 		statusLittleBox.label = SVE_STRINGS.NOT_APPLICABLE2;
 		return;
 	}
@@ -458,7 +458,7 @@ function SVE_StartCheck() {
 	// When there aren't any matching Recevied: headers, the mail probably started
 	// on the mail server itself.  Is this a security problem?
 	if (!HeloName || !IPAddr) {
-		statusText.value = SVE_STRINGS.LOCAL_MAIL;
+		statusText.childNodes[0].nodeValue = SVE_STRINGS.LOCAL_MAIL;
 		statusLittleBox.label = SVE_STRINGS.NOT_APPLICABLE2;
 		return;
 	}
@@ -522,7 +522,7 @@ function SVE_TryDK() {
 		
 		// Check that required tags are present, and if so compute the email hash
 		if (DK_SIG != null && (DK_CAN == "simple" || DK_CAN == "nofws") && DK_DOMAIN != null && DK_QMETHOD != null && DK_SELECTOR != null) {
-			statusText.value = SVE_STRINGS.DK_COMPUTING_SIGNATURE;
+			statusText.childNodes[0].nodeValue = SVE_STRINGS.DK_COMPUTING_SIGNATURE;
 			statusLittleBox.label = SVE_STRINGS.CHECKING_DK;
 	
 			var dataListener = {
@@ -575,7 +575,7 @@ function SVE_TryDK() {
 					
 					if (this.bytesread > 20000) {
 						this.bytesread = 0;
-						statusText.value = SVE_STRINGS.DK_ABORTED1;
+						statusText.childNodes[0].nodeValue = SVE_STRINGS.DK_ABORTED1;
 						statusLittleBox.label = SVE_STRINGS.DK_ABORTED2;
 						throw "TOOLONG";
 					}
@@ -679,7 +679,7 @@ function SVE_TryDK() {
 				msgService.streamMessage(uri, async_consumer, msgWindow, null, false, null)
 				return true;
 			} catch (ex) {
-				statusText.value = ex;
+				statusText.childNodes[0].nodeValue = ex;
 				statusLittleBox.label = SVE_STRINGS.ERROR;
 				return false;
 			}
@@ -879,7 +879,7 @@ function SVE_Check_OpenPhishingDatabase() {
 	
 	// Check the open phishing database
 	
-	statusText.value = "Checking sender in Open Phishing Database...";
+	statusText.childNodes[0].nodeValue = "Checking sender in Open Phishing Database...";
 
 	xmlhttp2.abort();
 	xmlhttp2.open("GET", "http://opdb.berlios.de/cgi-bin/query.pl?m=http&i=" + IPAddr + "&s=" + SVE_GetDomain(FromHdr), true);
@@ -913,12 +913,12 @@ function SVE_DisplayResult() {
 	// Set up the explanation label.
 	statusLink.style.display = null;
 	if (QueryReturn.comment == "")
-		statusLink.value = SVE_STRINGS.NO_EXPLANATION;
+		statusLink.childNodes[0].nodeValue = SVE_STRINGS.NO_EXPLANATION;
 	else
-		statusLink.value = QueryReturn.comment;
+		statusLink.childNodes[0].nodeValue = QueryReturn.comment;
 	
 	/*if (QueryReturn.netcraft_risk > 0)
-		statusLink.value += " Site Age: " + QueryReturn.netcraft_since + ", Netcraft Rank: " + QueryReturn.netcraft_rank;*/
+		statusLink.childNodes[0].nodeValue += " Site Age: " + QueryReturn.netcraft_since + ", Netcraft Rank: " + QueryReturn.netcraft_rank;*/
 
 	// When the sender is not verified and the forwarder is not trusted, then
 	// show the internal network server link.
@@ -957,12 +957,12 @@ function SVE_DisplayResult() {
 	switch (QueryReturn.result) {
 		case "pass":
 			if (endsWith(FromHdr, "@" + QueryReturn.domain)) {
-				statusText.value = SVE_STRINGS.CONFIRMED(QueryReturn.domain);
+				statusText.childNodes[0].nodeValue = SVE_STRINGS.CONFIRMED(QueryReturn.domain);
 				statusText.style.color = null;
 				statusLittleBox.label = SVE_STRINGS.CONFIRMED2;
 				statusLittleBox.style.color = "blue";
 			} else {
-				statusText.value = SVE_STRINGS.ENVELOPE_CONFIRMED(QueryReturn.domain);
+				statusText.childNodes[0].nodeValue = SVE_STRINGS.ENVELOPE_CONFIRMED(QueryReturn.domain);
 				statusText.style.color = "red";
 				statusLittleBox.label = SVE_STRINGS.ENVELOPE_CONFIRMED2(QueryReturn.domain);
 				statusLittleBox.style.color = "red";
@@ -976,43 +976,43 @@ function SVE_DisplayResult() {
 				}
 			}
 			
-			statusText.value += " " + SVE_STRINGS.USER_NOT_CHECKED(SVE_GetUser(FromHdr));
+			statusText.childNodes[0].nodeValue += " " + SVE_STRINGS.USER_NOT_CHECKED(SVE_GetUser(FromHdr));
 			
 			if (QueryReturn.trustedForwarder)
-				statusText.value += " " + SVE_STRINGS.VIA(QueryReturn.trustedForwarder);
+				statusText.childNodes[0].nodeValue += " " + SVE_STRINGS.VIA(QueryReturn.trustedForwarder);
 			break;
 		case "fail":
-			statusText.value = SVE_STRINGS.FORGED(QueryReturn.domain);
+			statusText.childNodes[0].nodeValue = SVE_STRINGS.FORGED(QueryReturn.domain);
 			statusText.style.color = "red";
 			statusLittleBox.label = SVE_STRINGS.FORGED2;
 			statusLittleBox.style.color = "red";
 			break;
 		case "none":
-			statusText.value = SVE_STRINGS.NOT_SUPPORTED;
+			statusText.childNodes[0].nodeValue = SVE_STRINGS.NOT_SUPPORTED;
 			statusText.style.color = "blue";
 			statusLittleBox.label = SVE_STRINGS.NOT_VERIFIED;
 			statusLittleBox.style.color = "red";
 			break;
 		case "neutral":
-			statusText.value = SVE_STRINGS.NEUTRAL;
+			statusText.childNodes[0].nodeValue = SVE_STRINGS.NEUTRAL;
 			statusText.style.color = "blue";
 			statusLittleBox.label = SVE_STRINGS.NOT_VERIFIED;
 			statusLittleBox.style.color = "red";
 			break;
 		case "neutraltrydk":
-			statusText.value = SVE_STRINGS.DK_NOT_CHECKED;
+			statusText.childNodes[0].nodeValue = SVE_STRINGS.DK_NOT_CHECKED;
 			statusLittleBox.label = SVE_STRINGS.NOT_VERIFIED;
 			statusLittleBox.style.color = "red";
 			break;
 		case "phishing":
-			statusText.value = SVE_STRINGS.ATTACK;
+			statusText.childNodes[0].nodeValue = SVE_STRINGS.ATTACK;
 			statusText.style.color = "red";
-			statusLink.value = QueryReturn.comment;
+			statusLink.childNodes[0].nodeValue = QueryReturn.comment;
 			statusLittleBox.label = SVE_STRINGS.ATTACK2;
 			statusLittleBox.style.color = "red";
 			break;
 		default:
-			statusText.value = SVE_STRINGS.ERROR2 + " " + QueryReturn.comment;
+			statusText.childNodes[0].nodeValue = SVE_STRINGS.ERROR2 + " " + QueryReturn.comment;
 			statusText.style.color = "red";
 			statusLittleBox.label = SVE_STRINGS.ERROR;
 			statusLittleBox.style.color = "red";
@@ -1022,14 +1022,14 @@ function SVE_DisplayResult() {
 	if (IsViaMailList)
 	switch (QueryReturn.result) {
 		case "pass":
-			statusText.value = SVE_STRINGS.MAIL_LIST(QueryReturn.domain);
+			statusText.childNodes[0].nodeValue = SVE_STRINGS.MAIL_LIST(QueryReturn.domain);
 			statusText.style.color = null;
-			statusLink.value = SVE_STRINGS.MAIL_LIST_EXPLANATION;
+			statusLink.childNodes[0].nodeValue = SVE_STRINGS.MAIL_LIST_EXPLANATION;
 			statusLittleBox.label = SVE_STRINGS.MAIL_LIST2(QueryReturn.domain);
 			statusLittleBox.style.color = "blue";
 			break;
 		default:
-			statusText.value = SVE_STRINGS.MAIL_LIST_UNVERIFIED;
+			statusText.childNodes[0].nodeValue = SVE_STRINGS.MAIL_LIST_UNVERIFIED;
 			statusText.style.color = "blue";
 			statusLittleBox.label = SVE_STRINGS.NOT_VERIFIED;
 			statusLittleBox.style.color = "red";
@@ -1046,7 +1046,7 @@ function SVE_BeginCheck() {
 }
 
 function SVE_CheckRBLs() {
-	statusText.value = SVE_STRINGS.CHECKING_RBLS1;
+	statusText.childNodes[0].nodeValue = SVE_STRINGS.CHECKING_RBLS1;
 	statusLittleBox.label = SVE_STRINGS.CHECKING_RBLS2;
 	
 	SVE_CheckSURBL();
@@ -1104,7 +1104,7 @@ function SVE_QuerySPF(helo, ip, email_from, email_envelope, func) {
 	// then query the email envelope.  If that also doesn't
 	// pass, then go with the result of the from: query.
 	
-	statusText.value = SVE_STRINGS.SPF1;
+	statusText.childNodes[0].nodeValue = SVE_STRINGS.SPF1;
 	statusLittleBox.label = SVE_STRINGS.SPF2;
 	
 	// Remember what message we're looking at now.  If the
@@ -1125,7 +1125,7 @@ function SVE_QuerySPF(helo, ip, email_from, email_envelope, func) {
 	setTimeout(
 		function() {
 			if (gotInfo.got) return;
-			statusText.value = SVE_STRINGS.SPF1 + " " + SVE_STRINGS.DNS_TAKING_TIME;
+			statusText.childNodes[0].nodeValue = SVE_STRINGS.SPF1 + " " + SVE_STRINGS.DNS_TAKING_TIME;
 		},
 		5000);
 	
@@ -1239,12 +1239,12 @@ function SPFSendDKQuery(helo, ip, email_from, email_envelope, dkheader, dkhash, 
 
 	var curMessage = GetFirstSelectedMessage();
 	
-	statusText.value = SVE_STRINGS.DK_CONTACTING_SERVER;
+	statusText.childNodes[0].nodeValue = SVE_STRINGS.DK_CONTACTING_SERVER;
 	
 	xmlhttp.open("GET", url, true);
 	xmlhttp.setRequestHeader("User-Agent", sveHttpUserAgent);
 	xmlhttp.onerror=function() {
-		statusText.value = "Error: " + xmlhttp.statusText;
+		statusText.childNodes[0].nodeValue = "Error: " + xmlhttp.statusText;
 		statusText.style.color = "blue";
 		statusLittleBox.label = SVE_STRINGS.ERROR;
 	};
@@ -1259,7 +1259,7 @@ function SPFSendQuery2(func, queryObj) {
 	// Don't know how better to get the information out of the XML...
 	
 	if (xmlhttp.responseXML == null) {
-		statusText.value = SVE_STRINGS.SERVER_ERROR;
+		statusText.childNodes[0].nodeValue = SVE_STRINGS.SERVER_ERROR;
 		statusText.style.color = "blue";
 		statusLittleBox.label = SVE_STRINGS.ERROR;
 		return;
@@ -1270,7 +1270,7 @@ function SPFSendQuery2(func, queryObj) {
 		e = e.nextSibling;
 	}
 	if (!e) {
-		statusText.value = SVE_STRINGS.SERVER_ERROR;
+		statusText.childNodes[0].nodeValue = SVE_STRINGS.SERVER_ERROR;
 		statusText.style.color = "blue";
 		statusLittleBox.label = SVE_STRINGS.ERROR;
 		return;
