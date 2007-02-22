@@ -157,6 +157,7 @@
 		 <tab label="&options.general;"/>
 		 <tab label="&options.mtas;"/>
 		 <tab label="&options.forwarders;"/>
+		 <tab label="&options.advanced;"/>
 	  </tabs>
 	  
 	  <tabpanels>
@@ -169,14 +170,6 @@
 			  <checkbox label="&options.popups;" id="spf_warnunverified"/>
 			  <checkbox label="&options.usestatusbar;" id="spf_onlystatusbar"/>
 			  
-			  <separator class="groove-thin"/>
-			  
-			  <vbox>
-				<label value="&options.verificationserver;" class="header"/>
-				<textbox id="spf_queryserver" style="width: 10em"/>
-			  </vbox>
-			  <description style="width: 200px">&options.verificationserverinfo;</description>	  
-		
 			  <separator class="groove-thin"/>
 			  
 			  <vbox>
@@ -220,6 +213,13 @@
 		  </vbox>
 		 </tabpanel>
 		 
+		 <tabpanel>
+			  <vbox>
+				<label value="&options.verificationserver;" class="header"/>
+				<textbox id="spf_queryserver" style="width: 10em"/>
+			  </vbox>
+			  <description style="width: 200px">&options.verificationserverinfo;</description>
+		 </tabpanel>
 	  </tabpanels>
 	</tabbox>
 	

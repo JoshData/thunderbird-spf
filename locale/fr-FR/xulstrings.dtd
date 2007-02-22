@@ -20,6 +20,7 @@
 <!ENTITY options.forwarders "Hébergeurs de renvois:">
 <!ENTITY options.forwardersinfo "Voici les noms <b>hostnames</b> des serveurs
 qui vous envoient du courrier, sont inclus les serveurs de liste de courriers et ceux de renvois.">
+<!ENTITY options.advanced "Arrangements Avançés">
 <!ENTITY options.verificationserver "Vérification de serveurs DK:">
 <!ENTITY options.verificationserverinfo "Voici l'adresse du serveur qui sera contacté pour effectuer les vérifications DomainKeys si l'option de vérification des signatures DomainKeys est cochée ci-dessus. Laisser en blanc pour utiliser le serveur par défaut.">
 <!ENTITY options.dns "Serveur DNS:">

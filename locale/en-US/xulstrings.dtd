@@ -18,6 +18,7 @@
 <!ENTITY options.mtainfo "These are IP addresses of servers in your internal network. (You may use CIDR and wildcards, e.g. 123.456.789.* or 123.456.789.0/24)">
 <!ENTITY options.forwarders "Forwarding Hosts:">
 <!ENTITY options.forwardersinfo "These are <b>hostnames</b> of servers that forward mail to you, including mail list servers and mail forwarders.">
+<!ENTITY options.advanced "Advanced Settings">
 <!ENTITY options.verificationserver "DK Verification Server:">
 <!ENTITY options.verificationserverinfo "This is the address of the server which will be contacted to perform DomainKeys verifications if Check DomainKeys Signatures is checked above.  Leave blank to use the default server.">
 <!ENTITY options.dns "DNS Server:">
