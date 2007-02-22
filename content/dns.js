@@ -29,6 +29,7 @@ function DNS_LoadPrefs() {
 	if (prefs.getPrefType("dns.nameserver") == prefs.PREF_STRING
 		&& prefs.getCharPref("dns.nameserver") != null && prefs.getCharPref("dns.nameserver") != "") {
 		DNS_ROOT_NAME_SERVER = prefs.getCharPref("dns.nameserver");
+		//DNS_Log("DNS: Got server from user preference: " + DNS_ROOT_NAME_SERVER);
 	} else {
 		// Try getting a nameserver from /etc/resolv.conf.
 		try {
@@ -51,12 +52,17 @@ function DNS_LoadPrefs() {
 			}
 			
 			stream_filestream.close();
+			
+			//DNS_Log("DNS: Got server from resolv.conf: " + DNS_ROOT_NAME_SERVER);
 		} catch (e) {
+			//DNS_Log("DNS: Reading resolv.conf: " + e);
 		}
 		
 		// Try getting a nameserver from the windows registry
 		try {
-			var registry_object = Components.classes["@mozilla.org/windows-registry-key;1"].createInstance();
+			var registry_class = Components.classes["@mozilla.org/windows-registry-key;1"];
+			if (registry_class != null) {
+			var registry_object = registry_class.createInstance();
 			var registry = registry_object.QueryInterface(Components.interfaces.nsIWindowsRegKey);
 			
 			registry.open(registry.ROOT_KEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters", registry.ACCESS_QUERY_VALUE);
@@ -70,10 +76,15 @@ function DNS_LoadPrefs() {
 				if (servers.length > 0 && servers[0] != "") {
 					DNS_ROOT_NAME_SERVER = servers[0];
 					DNS_FOUND_NAME_SERVER_AUTOMATICALLY = 1;
+					//DNS_Log("DNS: Got server from Windows registry: " + DNS_ROOT_NAME_SERVER);
 				}
 			}
+			}
 		} catch (e) {
+			//DNS_Log("DNS: Reading Registry: " + e);
 		}
+		
+		//DNS_Log("DNS: Autoconfigured server: " + DNS_ROOT_NAME_SERVER);
 	}
 }
 
@@ -498,9 +509,13 @@ function DNS_readAllFromSocket(host,port,outputData,listener)
 
 function DNS_Debug(message) {
 	if (false) {
-		var consoleService = Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService);
-		consoleService.logStringMessage(message);
+		DNS_Log(message);
 	}
+}
+
+function DNS_Log(message) {
+	var consoleService = Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService);
+	consoleService.logStringMessage(message);
 }
 
 function DNS_StartsWith(a, b) {
