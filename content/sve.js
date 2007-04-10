@@ -50,25 +50,6 @@ var sve_internal_mtas_configured;
 // Yes it's a bad way to program, but it seems necessary in order
 // to put some code in the xmlhttp callbacks.
 
-var FromHdr = null;
-var EnvFrom = null;
-var DateHdr = null;
-
-var HeloName = null;
-var IPAddr = null;
-
-var HeloName2 = null;
-var IPAddr2 = null;
-
-var IsViaMailList = null;
-
-var DKHeader = null;
-var DKHeaderPostPosition = null;
-var DKHash = null;
-
-var QueryReturn = null;
-var QueryReturn2 = null;
-
 var spfBox;
 var statusText;
 var statusLink;
@@ -235,22 +216,24 @@ function spfGo(manual) {
 	statusText.childNodes[0].nodeValue = SVE_STRINGS.SCANNING_HEADERS;
 	statusLittleBox.label = SVE_STRINGS.SCANNING;
 	
-	FromHdr = null;
-	EnvFrom = null;
-	DateHdr = null;
+	var msgInfo = new Object();
 	
-	HeloName = null;
-	IPAddr = null;
+	msgInfo.FromHdr = null;
+	msgInfo.EnvFrom = null;
+	msgInfo.DateHdr = null;
 	
-	HeloName2 = null;
-	IPAddr2 = null;
+	msgInfo.HeloName = null;
+	msgInfo.IPAddr = null;
 	
-	IsViaMailList = false;
+	msgInfo.HeloName2 = null;
+	msgInfo.IPAddr2 = null;
 	
-	DKHeader = null;
-	DKHash = null;
+	msgInfo.IsViaMailList = false;
 	
-    var msgService = messenger.messageServiceFromURI(uri);
+	msgInfo.DKHeader = null;
+	msgInfo.DKHash = null;
+	
+	var msgService = messenger.messageServiceFromURI(uri);
 	var prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
 	
     var dataListener = {
@@ -290,8 +273,8 @@ function spfGo(manual) {
 				// handle a continued header line
 				if (this.hcont) {
 					if (this.hlast == "DK") {
-						DKHeader += this.h;
-						DKHeaderPostPosition = this.bytesread;
+						msgInfo.DKHeader += this.h;
+						msgInfo.DKHeaderPostPosition = this.bytesread;
 					}
 					
 					this.hcont = false;
@@ -308,18 +291,18 @@ function spfGo(manual) {
 				var m;
 				
 				m = ReturnPathRegEx.exec(this.h);
-				if (m) { EnvFrom = m[1].toLowerCase(); }
+				if (m) { msgInfo.EnvFrom = m[1].toLowerCase(); }
 				
 				// TODO: What if the From address is split onto two lines.....
 				m = FromRegEx.exec(this.h);
 				if (m) {
-					FromHdr = m[1];
-					if (!FromHdr) { FromHdr = m[2]; }
-					FromHdr = FromHdr.toLowerCase();
+					msgInfo.FromHdr = m[1];
+					if (!msgInfo.FromHdr) { msgInfo.FromHdr = m[2]; }
+					msgInfo.FromHdr = msgInfo.FromHdr.toLowerCase();
 				}
 				
 				m = DateRegEx.exec(this.h);
-				if (m) { DateHdr = Date.parse(m[1]); }
+				if (m) { msgInfo.DateHdr = Date.parse(m[1]); }
 				
 				var he = null;
 				var ip = null;
@@ -366,26 +349,26 @@ function spfGo(manual) {
 					if (!internal) {
 						// This is the point where we should do an SPF check.
 						if (this.mode == 0) {
-							HeloName = he;
-							IPAddr = ip;
+							msgInfo.HeloName = he;
+							msgInfo.IPAddr = ip;
 						} else if (this.mode == 1) {
 							// This gets the second matching Received: line information.
-							HeloName2 = he;
-							IPAddr2 = ip;
+							msgInfo.HeloName2 = he;
+							msgInfo.IPAddr2 = ip;
 						}						
 						this.mode++;
 					}
 				}
 			
-				if (startsWith(this.h, "DomainKey-Signature: ") && DKHeader == null) {
+				if (startsWith(this.h, "DomainKey-Signature: ") && msgInfo.DKHeader == null) {
 					// DKHeader != null to make sure we only read the first DK header in the message.
-					DKHeader = this.h.substring(21, this.h.length);
+					msgInfo.DKHeader = this.h.substring(21, this.h.length);
 					this.hlast = "DK";
-					DKHeaderPostPosition = this.bytesread; // message hash starts from this position
+					msgInfo.DKHeaderPostPosition = this.bytesread; // message hash starts from this position
 				}
 				
 				if (startsWith(this.h, "List-Id: ")) {
-					IsViaMailList = true;
+					msgInfo.IsViaMailList = true;
 				}
 		
 				this.h = "";
@@ -393,7 +376,7 @@ function spfGo(manual) {
 			}
 			
 			if (endofheaders) {
-				SVE_StartCheck();
+				SVE_StartCheck(msgInfo);
 				throw "IGNORE_THIS__NOT_A_REAL_PROBLEM"; // abort reading the message since we don't need any more of it
 			}
 		}
@@ -414,19 +397,19 @@ function spfGo(manual) {
 	
 }
 
-function SVE_StartCheck() {
-	if (IsViaMailList) {
+function SVE_StartCheck(msgInfo) {
+	if (msgInfo.IsViaMailList) {
 		// If this is a mail list email, don't bother trying to check the FromAddress
 		// since SPF will certainly fail, and DK will probably fail since messages
 		// are usually appended with a mail list footer.
-		FromHdr = EnvFrom;
+		msgInfo.FromHdr = msgInfo.EnvFrom;
 	}
 	
-	if (FromHdr != null && SVE_GetDomain(FromHdr) == null) FromHdr = null;
-	if (EnvFrom != null && SVE_GetDomain(EnvFrom) == null) EnvFrom = null;
+	if (msgInfo.FromHdr != null && SVE_GetDomain(msgInfo.FromHdr) == null) msgInfo.FromHdr = null;
+	if (msgInfo.EnvFrom != null && SVE_GetDomain(msgInfo.EnvFrom) == null) msgInfo.EnvFrom = null;
 	
 	// What if there is no From: header
-	if (!FromHdr) {
+	if (!msgInfo.FromHdr) {
 		statusText.childNodes[0].nodeValue = SVE_STRINGS.CANNOT_FIND_FROM;
 		statusText.style.color = "blue";
 		statusLittleBox.label = SVE_STRINGS.NOT_APPLICABLE2;
@@ -442,14 +425,14 @@ function SVE_StartCheck() {
 	// If the message is old, there's no way to know whether something legitimate now
 	// was legitimate when it was sent, or something illegitimate now might have
 	// (confusingly) been legitimate at the time.
-	if (DateHdr != null && new Date().getTime() - DateHdr > 1000*60*60*24*DAYS_TOO_OLD) {
+	if (msgInfo.DateHdr != null && new Date().getTime() - msgInfo.DateHdr > 1000*60*60*24*DAYS_TOO_OLD) {
 		statusText.childNodes[0].nodeValue = SVE_STRINGS.MESSAGE_TOO_OLD;
 		statusLittleBox.label = SVE_STRINGS.NOT_APPLICABLE2;
 		return;
 	}
 	
 	// For completeness, if a message was sent too far in the future, flag a problem.
-	if (DateHdr != null && DateHdr - new Date().getTime() > 1000*60*60*24*DAYS_IN_THE_FUTURE) {
+	if (msgInfo.DateHdr != null && msgInfo.DateHdr - new Date().getTime() > 1000*60*60*24*DAYS_IN_THE_FUTURE) {
 		statusText.childNodes[0].nodeValue = SVE_STRINGS.MESSAGE_IN_FUTURE;
 		statusLittleBox.label = SVE_STRINGS.NOT_APPLICABLE2;
 		return;
@@ -457,27 +440,27 @@ function SVE_StartCheck() {
 	
 	// When there aren't any matching Recevied: headers, the mail probably started
 	// on the mail server itself.  Is this a security problem?
-	if (!HeloName || !IPAddr) {
+	if (!msgInfo.HeloName || !msgInfo.IPAddr) {
 		statusText.childNodes[0].nodeValue = SVE_STRINGS.LOCAL_MAIL;
 		statusLittleBox.label = SVE_STRINGS.NOT_APPLICABLE2;
 		return;
 	}
 
-	SVE_BeginCheck();
+	SVE_BeginCheck(msgInfo);
 	
 	// Protect all links.  This was an interesting idea, but it's disabled for now.
 	// SVE_ProtectLinks(document.getElementById("messagepane").contentDocument);
 	
 }
 
-function SVE_TryDK() {
+function SVE_TryDK(msgInfo) {
 	var csi;
 	var mode;
 	var h;
 	var c;
 	
 	// Interpret the DK header
-	if (FromHdr != null && DKHeader != null && DKHeader != "") {
+	if (msgInfo.FromHdr != null && msgInfo.DKHeader != null && msgInfo.DKHeader != "") {
 		mode = 0;
 		h = "";
 		var v;
@@ -490,8 +473,8 @@ function SVE_TryDK() {
 		var DK_QMETHOD = null;
 		var DK_SELECTOR = null;
 		
-		for (csi = 0; csi < DKHeader.length; csi++) {
-			c = DKHeader.charAt(csi);
+		for (csi = 0; csi < msgInfo.DKHeader.length; csi++) {
+			c = msgInfo.DKHeader.charAt(csi);
 			if (c == " " || c == "\t") continue;
 			if (mode == 0) {
 				if (c == "=") {
@@ -503,7 +486,7 @@ function SVE_TryDK() {
 			} else {
 				if (c != ";")
 					v += c;
-				if (c == ";" || csi == DKHeader.length-1) {
+				if (c == ";" || csi == msgInfo.DKHeader.length-1) {
 					switch (h) {
 						case "a": DK_ALGO = v; break;
 						case "b": DK_SIG = v; break;
@@ -553,10 +536,9 @@ function SVE_TryDK() {
 						//alert(hashdata);
 					}
 					
-					DKHash = sha1_incremental_end_base64();
+					msgInfo.DKHash = sha1_incremental_end_base64();
 					
-					SPFSendDKQuery(HeloName, IPAddr, FromHdr, EnvFrom != null && EnvFrom != FromHdr ? EnvFrom : null, DKHeader, DKHash,
-						"SVE_OnQueriesComplete()");
+					SPFSendDKQuery(msgInfo.HeloName, msgInfo.IPAddr, msgInfo.FromHdr, msgInfo.EnvFrom != null && msgInfo.EnvFrom != msgInfo.FromHdr ? msgInfo.EnvFrom : null, msgInfo.DKHeader, msgInfo.DKHash, msgInfo, SVE_OnQueriesComplete);
 				},
 				
 				onDataAvailable: function(request, context, inputStream, offset, count) {
@@ -566,7 +548,7 @@ function SVE_TryDK() {
 						this.stream.setInputStream(inputStream);
 					}
 					
-					while (this.bytesread < DKHeaderPostPosition && count > 0) {
+					while (this.bytesread < msgInfo.DKHeaderPostPosition && count > 0) {
 						this.bytesread++;
 						count--;
 						this.stream.read8();
@@ -744,79 +726,81 @@ function SVE_ProtectLink(a) {
 		a);
 }
 
-function SVE_OnQuerySPFComplete() {	
+function SVE_OnQuerySPFComplete(msgInfo) {	
 	var prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
-	var prefname = "spf.forwarder." + QueryReturn.domain;
+	var prefname = "spf.forwarder." + msgInfo.QueryReturn.domain;
 	var domainTrusted = (prefs.getPrefType(prefname) == prefs.PREF_STRING && prefs.getCharPref(prefname) == "trust");
 
 	// If it was the envelope address that passed, if that domain is trusted, and if we have
 	// further Received: header information, then this is a trusted forwarder.
-	if (HeloName2 && IPAddr2 && EnvFrom
-		&& QueryReturn.result == "pass"
-		&& !endsWith(FromHdr, "@" + QueryReturn.domain)
-		&& endsWith(EnvFrom, "@" + QueryReturn.domain)) {
+	if (msgInfo.HeloName2 && msgInfo.IPAddr2 && msgInfo.EnvFrom
+		&& msgInfo.QueryReturn.result == "pass"
+		&& !endsWith(msgInfo.FromHdr, "@" + msgInfo.QueryReturn.domain)
+		&& endsWith(msgInfo.EnvFrom, "@" + msgInfo.QueryReturn.domain)) {
 		if (domainTrusted) {
-			QueryReturn2 = QueryReturn;
-			SVE_QuerySPF(HeloName2, IPAddr2, FromHdr, null,
-				"QueryReturn.trustedForwarder = QueryReturn2.domain; SVE_OnQueriesComplete();");
+			msgInfo.QueryReturn2 = msgInfo.QueryReturn;
+			SVE_QuerySPF(msgInfo.IPAddr2, msgInfo.FromHdr, null, msgInfo, function(msgInfo) {
+				msgInfo.QueryReturn.trustedForwarder = msgInfo.QueryReturn2.domain;
+				SVE_OnQueriesComplete(msgInfo);
+				} );
 			return;
 		} else {
-			QueryReturn.promptToTrust = 1;
+			msgInfo.QueryReturn.promptToTrust = 1;
 		}
 	}
 	
-	SVE_OnQueriesComplete();
+	SVE_OnQueriesComplete(msgInfo);
 }
 
-function SVE_CheckNetcraft() {
+function SVE_CheckNetcraft(msgInfo) {
 	// this isn't used
 	
-	if (QueryReturn.result == "fail") {
+	if (msgInfo.QueryReturn.result == "fail") {
 		return;
 	}
 	
 	// Check Netcraft Toolbar
 	
-	QueryReturn.netcraft_risk = null;
-	QueryReturn.netcraft_rank = null;
-	QueryReturn.netcraft_since = null;
+	msgInfo.QueryReturn.netcraft_risk = null;
+	msgInfo.QueryReturn.netcraft_rank = null;
+	msgInfo.QueryReturn.netcraft_since = null;
 	
 	xmlhttp2.abort();
-	xmlhttp2.open("GET", "http://toolbar.netcraft.com/check_url/http://www." + SVE_GetDomain(FromHdr), true);
+	xmlhttp2.open("GET", "http://toolbar.netcraft.com/check_url/http://www." + SVE_GetDomain(msgInfo.FromHdr), true);
 	xmlhttp2.setRequestHeader("User-Agent", sveHttpUserAgent);
-	xmlhttp2.onerror = SVE_DisplayResult;
+	xmlhttp2.onerror = function() { SVE_DisplayResult(msgInfo); } ;
 	xmlhttp2.onload = function() {
 		if (xmlhttp2.responseText != null) {
 			var matches = xmlhttp2.responseText.match(/>(\d+)</);
 			if (matches != null) {
-				QueryReturn.netcraft_rank = matches[1];
-				if (QueryReturn.netcraft_rank > 2000)
-					QueryReturn.netcraft_risk = 1;
-				if (QueryReturn.netcraft_rank > 200000)
-					QueryReturn.netcraft_risk = 2;
+				msgInfo.QueryReturn.netcraft_rank = matches[1];
+				if (msgInfo.QueryReturn.netcraft_rank > 2000)
+					msgInfo.QueryReturn.netcraft_risk = 1;
+				if (msgInfo.QueryReturn.netcraft_rank > 200000)
+					msgInfo.QueryReturn.netcraft_risk = 2;
 			}
 
 			matches = xmlhttp2.responseText.match(/> ?([A-Z][a-z]+ \d+)</);
 			if (matches != null) {
-				QueryReturn.netcraft_since = matches[1];
-				if (endsWith(QueryReturn.netcraft_since, new Date().getFullYear())
-					|| endsWith(QueryReturn.netcraft_since, new Date().getFullYear()-1))
-					QueryReturn.netcraft_risk = 2;
+				msgInfo.QueryReturn.netcraft_since = matches[1];
+				if (endsWith(msgInfo.QueryReturn.netcraft_since, new Date().getFullYear())
+					|| endsWith(msgInfo.QueryReturn.netcraft_since, new Date().getFullYear()-1))
+					msgInfo.QueryReturn.netcraft_risk = 2;
 			}
 		}
-		SVE_DisplayResult();
+		SVE_DisplayResult(msgInfo);
 	};
 	xmlhttp2.send(null);
 }
 
-function SVE_Check_PhishTank() {
+function SVE_Check_PhishTank(msgInfo) {
 	// this isn't used...
 	
-	if (QueryReturn.result == "fail") {
+	if (msgInfo.QueryReturn.result == "fail") {
 		return;
 	}
 	
-	var hypothetical_url = "http://www." + SVE_GetDomain(FromHdr);
+	var hypothetical_url = "http://www." + SVE_GetDomain(msgInfo.FromHdr);
 	
 	var rq_ping = getPhishTankRequest( { version: 1, responseformat: 'xml', action: "misc.ping" });
 	
@@ -825,13 +809,13 @@ function SVE_Check_PhishTank() {
 	xmlhttp_phishtank.abort();
 	xmlhttp_phishtank.open("GET", "https://api.phishtank.com/api/?" + rq, true);
 	xmlhttp_phishtank.setRequestHeader("User-Agent", sveHttpUserAgent);
-	xmlhttp_phishtank.onerror = SVE_DisplayResult;
+	xmlhttp_phishtank.onerror = function() { SVE_DisplayResult(msgInfo); };
 	xmlhttp_phishtank.onload = function() {
 		if (xmlhttp_phishtank.responseText != null) {
 			alert(xmlhttp_phishtank.responseText);
 			// xmlhttp.responseXML
 		}
-		SVE_DisplayResult();
+		SVE_DisplayResult(msgInfo);
 	};
 	xmlhttp_phishtank.send(null);
 }
@@ -870,10 +854,10 @@ function getPhishTankRequest(params) {
 	return url;
 }
 
-function SVE_Check_OpenPhishingDatabase() {
+function SVE_Check_OpenPhishingDatabase(msgInfo) {
 	// this isn't used ...
 	
-	if (QueryReturn.result != "pass" && QueryReturn.result != "none") {
+	if (msgInfo.QueryReturn.result != "pass" && msgInfo.QueryReturn.result != "none") {
 		return;
 	}
 	
@@ -882,54 +866,46 @@ function SVE_Check_OpenPhishingDatabase() {
 	statusText.childNodes[0].nodeValue = "Checking sender in Open Phishing Database...";
 
 	xmlhttp2.abort();
-	xmlhttp2.open("GET", "http://opdb.berlios.de/cgi-bin/query.pl?m=http&i=" + IPAddr + "&s=" + SVE_GetDomain(FromHdr), true);
+	xmlhttp2.open("GET", "http://opdb.berlios.de/cgi-bin/query.pl?m=http&i=" + msgInfo.IPAddr + "&s=" + SVE_GetDomain(msgInfo.FromHdr), true);
 	xmlhttp2.setRequestHeader("User-Agent", sveHttpUserAgent);
-	xmlhttp2.onerror = SVE_DisplayResult;
+	xmlhttp2.onerror = function() { SVE_DisplayResult(msgInfo); };
 	xmlhttp2.onload = function() {
 		if (xmlhttp2.responseText != null) {
 			var matches = xmlhttp2.responseText.match(/Server: y|IP: y/);
 			if (matches != null) {
-				QueryReturn.result = "phishing";
-				QueryReturn.comment = "This sender is listed in the Open Phishing Database.";
-				IsViaMailList = false;
+				msgInfo.QueryReturn.result = "phishing";
+				msgInfo.QueryReturn.comment = "This sender is listed in the Open Phishing Database.";
+				msgInfo.IsViaMailList = false;
 				alert("This mail was sent from an address associated with phishing attacks.  It is recommended that you discard the email immediately.");
 			}
 		}
-		SVE_DisplayResult();
+		SVE_DisplayResult(msgInfo);
 	};
 	xmlhttp2.send(null);
 }
 
-function SVE_OnQueriesComplete() {
-	SVE_DisplayResult();
+function SVE_OnQueriesComplete(msgInfo) {
+	SVE_DisplayResult(msgInfo);
 }
 
-function SVE_DisplayResult() {
-	// Check for similarly-named domains.  There's no sense in doing this if
-	// the domain is already apparently forged.	
-	/*if (QueryReturn.result != "fail")
-		SVE_CheckForLookAlikes(SVE_GetDomain(FromHdr));*/
-	
+function SVE_DisplayResult(msgInfo) {
 	// Set up the explanation label.
 	statusLink.style.display = null;
-	if (QueryReturn.comment == "")
+	if (msgInfo.QueryReturn.comment == "")
 		statusLink.childNodes[0].nodeValue = SVE_STRINGS.NO_EXPLANATION;
 	else
-		statusLink.childNodes[0].nodeValue = QueryReturn.comment;
+		statusLink.childNodes[0].nodeValue = msgInfo.QueryReturn.comment;
 	
-	/*if (QueryReturn.netcraft_risk > 0)
-		statusLink.childNodes[0].nodeValue += " Site Age: " + QueryReturn.netcraft_since + ", Netcraft Rank: " + QueryReturn.netcraft_rank;*/
-
 	// When the sender is not verified and the forwarder is not trusted, then
 	// show the internal network server link.
-	if (QueryReturn.result != "pass" && QueryReturn.result != "phishing" && !QueryReturn.trustedForwarder) {
+	if (msgInfo.QueryReturn.result != "pass" && msgInfo.QueryReturn.result != "phishing" && !msgInfo.QueryReturn.trustedForwarder) {
 			
-		reverseDNS(IPAddr, function(hostnames) {
+		reverseDNS(msgInfo.IPAddr, function(hostnames) {
 			if (hostnames == null || hostnames.length == 0) return;
 			statusTrust.style.display = null;
 			statusTrust.childNodes[0].nodeValue = SVE_STRINGS.MTACHECK(hostnames[0]);
 			statusTrust.linktype = "mta";
-			statusTrust.mta = IPAddr;
+			statusTrust.mta = msgInfo.IPAddr;
 			statusTrust.reversedns = hostnames[0];
 			
 			if (recentSenderIps[hostnames[0]] != "ignore" && !sve_internal_mtas_configured) {
@@ -940,7 +916,7 @@ function SVE_DisplayResult() {
 					var spfLinkDiv = document.getElementById('spfLinkDiv');
 					if (!spfLinkDiv.style.display) { spfLinkDiv.style.display = 'none'; this.setAttribute('class', 'collapsedHeaderViewButton'); }
 					
-					window.mta = IPAddr;
+					window.mta = msgInfo.IPAddr;
 					window.reversedns = hostnames[0];
 					window.open('chrome://spf/content/trustedmta.xul', '', 'chrome');
 				}
@@ -950,39 +926,39 @@ function SVE_DisplayResult() {
 	
 	// Show the user the result of the query.
 	
-	if ((QueryReturn.result == "none" || QueryReturn.result == "neutral") && QueryReturn.couldTryDK)
-		QueryReturn.result = "neutraltrydk";
+	if ((msgInfo.QueryReturn.result == "none" || msgInfo.QueryReturn.result == "neutral") && msgInfo.QueryReturn.couldTryDK)
+		msgInfo.QueryReturn.result = "neutraltrydk";
 	
-	if (!IsViaMailList)
-	switch (QueryReturn.result) {
+	if (!msgInfo.IsViaMailList)
+	switch (msgInfo.QueryReturn.result) {
 		case "pass":
-			if (endsWith(FromHdr, "@" + QueryReturn.domain)) {
-				statusText.childNodes[0].nodeValue = SVE_STRINGS.CONFIRMED(QueryReturn.domain);
+			if (endsWith(msgInfo.FromHdr, "@" + msgInfo.QueryReturn.domain)) {
+				statusText.childNodes[0].nodeValue = SVE_STRINGS.CONFIRMED(msgInfo.QueryReturn.domain);
 				statusText.style.color = null;
 				statusLittleBox.label = SVE_STRINGS.CONFIRMED2;
 				statusLittleBox.style.color = "blue";
 			} else {
-				statusText.childNodes[0].nodeValue = SVE_STRINGS.ENVELOPE_CONFIRMED(QueryReturn.domain);
+				statusText.childNodes[0].nodeValue = SVE_STRINGS.ENVELOPE_CONFIRMED(msgInfo.QueryReturn.domain);
 				statusText.style.color = "red";
-				statusLittleBox.label = SVE_STRINGS.ENVELOPE_CONFIRMED2(QueryReturn.domain);
+				statusLittleBox.label = SVE_STRINGS.ENVELOPE_CONFIRMED2(msgInfo.QueryReturn.domain);
 				statusLittleBox.style.color = "red";
 
-				if (QueryReturn.promptToTrust) {
+				if (msgInfo.QueryReturn.promptToTrust) {
 					statusTrust.style.display = null;
 					statusTrust.linktype = "forwarder";
-					statusTrust.mta = QueryReturn.domain;
-					statusTrust.childNodes[0].nodeValue = SVE_STRINGS.FORWARDERCHECK(QueryReturn.domain);
+					statusTrust.mta = msgInfo.QueryReturn.domain;
+					statusTrust.childNodes[0].nodeValue = SVE_STRINGS.FORWARDERCHECK(msgInfo.QueryReturn.domain);
 					return;
 				}
 			}
 			
-			statusText.childNodes[0].nodeValue += " " + SVE_STRINGS.USER_NOT_CHECKED(SVE_GetUser(FromHdr));
+			statusText.childNodes[0].nodeValue += " " + SVE_STRINGS.USER_NOT_CHECKED(SVE_GetUser(msgInfo.FromHdr));
 			
-			if (QueryReturn.trustedForwarder)
-				statusText.childNodes[0].nodeValue += " " + SVE_STRINGS.VIA(QueryReturn.trustedForwarder);
+			if (msgInfo.QueryReturn.trustedForwarder)
+				statusText.childNodes[0].nodeValue += " " + SVE_STRINGS.VIA(msgInfo.QueryReturn.trustedForwarder);
 			break;
 		case "fail":
-			statusText.childNodes[0].nodeValue = SVE_STRINGS.FORGED(QueryReturn.domain);
+			statusText.childNodes[0].nodeValue = SVE_STRINGS.FORGED(msgInfo.QueryReturn.domain);
 			statusText.style.color = "red";
 			statusLittleBox.label = SVE_STRINGS.FORGED2;
 			statusLittleBox.style.color = "red";
@@ -1007,25 +983,25 @@ function SVE_DisplayResult() {
 		case "phishing":
 			statusText.childNodes[0].nodeValue = SVE_STRINGS.ATTACK;
 			statusText.style.color = "red";
-			statusLink.childNodes[0].nodeValue = QueryReturn.comment;
+			statusLink.childNodes[0].nodeValue = msgInfo.QueryReturn.comment;
 			statusLittleBox.label = SVE_STRINGS.ATTACK2;
 			statusLittleBox.style.color = "red";
 			break;
 		default:
-			statusText.childNodes[0].nodeValue = SVE_STRINGS.ERROR2 + " " + QueryReturn.comment;
+			statusText.childNodes[0].nodeValue = SVE_STRINGS.ERROR2 + " " + msgInfo.QueryReturn.comment;
 			statusText.style.color = "red";
 			statusLittleBox.label = SVE_STRINGS.ERROR;
 			statusLittleBox.style.color = "red";
 			break;
 	}
 
-	if (IsViaMailList)
-	switch (QueryReturn.result) {
+	if (msgInfo.IsViaMailList)
+	switch (msgInfo.QueryReturn.result) {
 		case "pass":
-			statusText.childNodes[0].nodeValue = SVE_STRINGS.MAIL_LIST(QueryReturn.domain);
+			statusText.childNodes[0].nodeValue = SVE_STRINGS.MAIL_LIST(msgInfo.QueryReturn.domain);
 			statusText.style.color = null;
 			statusLink.childNodes[0].nodeValue = SVE_STRINGS.MAIL_LIST_EXPLANATION;
-			statusLittleBox.label = SVE_STRINGS.MAIL_LIST2(QueryReturn.domain);
+			statusLittleBox.label = SVE_STRINGS.MAIL_LIST2(msgInfo.QueryReturn.domain);
 			statusLittleBox.style.color = "blue";
 			break;
 		default:
@@ -1036,70 +1012,71 @@ function SVE_DisplayResult() {
 			break;
 	}
 	
-	if (warnunverified && QueryReturn.result != "pass") {
+	if (warnunverified && msgInfo.QueryReturn.result != "pass") {
 		alert(SVE_STRINGS.UNVERIFIED_POPUP_ALERT);
 	}
 }
 
-function SVE_BeginCheck() {
-	SVE_CheckRBLs();
+function SVE_BeginCheck(msgInfo) {
+	SVE_CheckRBLs(msgInfo);
 }
 
-function SVE_CheckRBLs() {
+function SVE_CheckRBLs(msgInfo) {
 	statusText.childNodes[0].nodeValue = SVE_STRINGS.CHECKING_RBLS1;
 	statusLittleBox.label = SVE_STRINGS.CHECKING_RBLS2;
 	
-	SVE_CheckSURBL();
+	SVE_CheckSURBL(msgInfo);
 }
 
-function SVE_CheckSURBL() {
+function SVE_CheckSURBL(msgInfo) {
 	// Check the SURBL phishing list, which includes (as of 10-2006)
 	// MailPolice and PhishTank.
 	queryDNS(
-		SVE_GetDomain(FromHdr) + ".multi.surbl.org",
+		SVE_GetDomain(msgInfo.FromHdr) + ".multi.surbl.org",
 		"A",
 		function(addr) {
 			if (addr == null) {
-				SVE_CheckSpamhaus();
+				SVE_CheckSpamhaus(msgInfo);
 			} else {
-				SVE_SetStatusFromRBL("SURBL");
-				SVE_OnQueriesComplete();
+				SVE_SetStatusFromRBL("SURBL", msgInfo);
+				SVE_OnQueriesComplete(msgInfo);
 			}
 		});
 }
 
-function SVE_CheckSpamhaus() {
+function SVE_CheckSpamhaus(msgInfo) {
 	// Check Spamhaus's SBL+XBL blacklist.
 	queryDNS(
-		IPAddr.split('.').reverse().join('.') + ".sbl-xbl.spamhaus.org",
+		msgInfo.IPAddr.split('.').reverse().join('.') + ".sbl-xbl.spamhaus.org",
 		"A",
 		function(addr) {
 			if (addr == null) {
-				SVE_CheckSPF();
+				SVE_CheckSPF(msgInfo);
 			} else {
-				SVE_SetStatusFromRBL("Spamhaus");
-				SVE_OnQueriesComplete();
+				SVE_SetStatusFromRBL("Spamhaus", msgInfo);
+				SVE_OnQueriesComplete(msgInfo);
 			}
 		});
 
 	
 }
 
-function SVE_SetStatusFromRBL(rbl) {
-	QueryReturn = new Object();
-	QueryReturn.result = "phishing";
-	QueryReturn.comment = SVE_STRINGS.BLACKLISTED(rbl);
-	QueryReturn.method = "rbl";
-	QueryReturn.couldTryDK = 0;
+function SVE_SetStatusFromRBL(rbl, msgInfo) {
+	msgInfo.QueryReturn = new Object();
+	msgInfo.QueryReturn.result = "phishing";
+	msgInfo.QueryReturn.comment = SVE_STRINGS.BLACKLISTED(rbl);
+	msgInfo.QueryReturn.method = "rbl";
+	msgInfo.QueryReturn.couldTryDK = 0;
 }
 
-function SVE_CheckSPF() {
-	SVE_QuerySPF(HeloName, IPAddr,
-		FromHdr, EnvFrom != null && EnvFrom != FromHdr ? EnvFrom : null,
-		"SVE_OnQuerySPFComplete()");
+function SVE_CheckSPF(msgInfo) {
+	SVE_QuerySPF(msgInfo.IPAddr, msgInfo.FromHdr, msgInfo.EnvFrom, msgInfo, function(msgInfo) { SVE_OnQuerySPFComplete(msgInfo) } );
 }
 
-function SVE_QuerySPF(helo, ip, email_from, email_envelope, func) {
+function SVE_QuerySPF(ip, from, envfrom, msgInfo, func) {
+	if (envfrom != null && envfrom == from)
+		envfrom = null;
+	
 	// Query the email from: first.  If that doesn't pass,
 	// then query the email envelope.  If that also doesn't
 	// pass, then go with the result of the from: query.
@@ -1129,38 +1106,35 @@ function SVE_QuerySPF(helo, ip, email_from, email_envelope, func) {
 		},
 		5000);
 	
-	SPF(ip, SVE_GetDomain(email_from),
+	SPF(ip, SVE_GetDomain(from),
 		function(result) {
 			gotInfo.got = true;
-			SVE_Debug("SVE SPF: " + ip + " " + email_from + " => " + result.status + " (" + result.message + ")"); 
-			
 			if (curMessage != GetFirstSelectedMessage())
 				return;
 			
-			if (result.status == "+" || email_envelope == null)
-				SVE_QuerySPF2(result.status, result.message, result.isguess, SVE_GetDomain(email_from), helo, ip, email_from, email_envelope, func);
+			if (result.status == "+" || envfrom == null)
+				SVE_QuerySPF2(result.status, result.message, result.isguess, SVE_GetDomain(from), msgInfo, func);
 			else
-				SPF(ip, SVE_GetDomain(email_envelope),
+				SPF(ip, SVE_GetDomain(envfrom),
 					function(result2) {
 						if (curMessage != GetFirstSelectedMessage())
 							return;
 						
-						SVE_Debug("SVE SPF: " + ip + " " + email_envelope + " => " + result2.status + " (" + result2.message + ")");
 						if (result2.status == "+")
-							SVE_QuerySPF2(result2.status, result2.message, result2.isguess, SVE_GetDomain(email_envelope), helo, ip, email_from, email_envelope, func);
+							SVE_QuerySPF2(result2.status, result2.message, result2.isguess, SVE_GetDomain(envfrom), msgInfo, func);
 						else
-							SVE_QuerySPF2(result.status, result.message, result.isguess, SVE_GetDomain(email_from), helo, ip, email_from, email_envelope, func);
+							SVE_QuerySPF2(result.status, result.message, result.isguess, SVE_GetDomain(from), msgInfo, func);
 					});
 		});
 }
 
-function SVE_QuerySPF2(result, message, isguess, domain, helo, ip, email_from, email_envelope, func) {
+function SVE_QuerySPF2(result, message, isguess, domain, msgInfo, func) {
 	// If the SPF test didn't pass, and if there is DK information,
 	// then send a query to the query server.
 	var couldTryDK = false;
-	if (result != "+" && DKHeader != null) {
+	if (result != "+" && msgInfo.DKHeader != null) {
 		if (usedk != "no") {
-			if (SVE_TryDK()) return;
+			if (SVE_TryDK(msgInfo)) return;
 		} else {
 			couldTryDK = true;
 		}
@@ -1173,13 +1147,13 @@ function SVE_QuerySPF2(result, message, isguess, domain, helo, ip, email_from, e
 	else if (result == "0") result = "none";
 	else result = "error";
 	
-	QueryReturn = new Object();
-	QueryReturn.result = result;
-	QueryReturn.comment = message;
-	QueryReturn.domain = domain;
-	QueryReturn.method = "spf";
-	QueryReturn.couldTryDK = couldTryDK;
-	setTimeout(func, 1);
+	msgInfo.QueryReturn = new Object();
+	msgInfo.QueryReturn.result = result;
+	msgInfo.QueryReturn.comment = message;
+	msgInfo.QueryReturn.domain = domain;
+	msgInfo.QueryReturn.method = "spf";
+	msgInfo.QueryReturn.couldTryDK = couldTryDK;
+	func(msgInfo)
 }
 
 function SVE_GetDomain(emailaddress) {
@@ -1193,7 +1167,7 @@ function SVE_GetUser(emailaddress) {
 	return emailaddress.substr(0, at);
 }
 
-function SPFSendDKQuery(helo, ip, email_from, email_envelope, dkheader, dkhash, func) {
+function SPFSendDKQuery(helo, ip, email_from, email_envelope, dkheader, dkhash, msgInfo, func) {
 	// Prepare the URL of the query.
 	
 	var url = serverurl;
@@ -1226,8 +1200,8 @@ function SPFSendDKQuery(helo, ip, email_from, email_envelope, dkheader, dkhash, 
 			// use the cached result.
 			if (QueryCache[i].method == 'spf' && QueryCache[i].result != 'pass' && dkheader != null) continue;
 				
-			QueryReturn = QueryCache[i];
-			window.setTimeout(func, 1);
+			msgInfo.QueryReturn = QueryCache[i];
+			func(msgInfo)
 			return;
 		}
 	}
@@ -1250,12 +1224,12 @@ function SPFSendDKQuery(helo, ip, email_from, email_envelope, dkheader, dkhash, 
 	};
 	xmlhttp.onload = function() {
 		if (GetFirstSelectedMessage() != curMessage) return;
-		SPFSendQuery2(func, queryObj);
+		SPFSendQuery2(msgInfo, func, queryObj);
 	};
 	xmlhttp.send(null);
 }
 
-function SPFSendQuery2(func, queryObj) {	
+function SPFSendQuery2(msgInfo, func, queryObj) {	
 	// Don't know how better to get the information out of the XML...
 	
 	if (xmlhttp.responseXML == null) {
@@ -1294,14 +1268,14 @@ function SPFSendQuery2(func, queryObj) {
 	}
 
 	// Return
-	QueryReturn = queryObj;
+	msgInfo.QueryReturn = queryObj;
 	
 	// Cache the return value.
 	QueryCache[QueryCacheNext++] = queryObj;
 	if (QueryCacheNext == QueryCacheMax) QueryCacheNext = 0;
 	
 	// Call the callback
-	window.setTimeout(func, 1);
+	func(msgInfo)
 }
 
 function SVE_CheckForLookAlikes(domain) {
