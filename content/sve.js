@@ -218,6 +218,8 @@ function spfGo(manual) {
 	
 	var msgInfo = new Object();
 	
+	msgInfo.uri = uri;
+	
 	msgInfo.FromHdr = null;
 	msgInfo.EnvFrom = null;
 	msgInfo.DateHdr = null;
@@ -376,6 +378,27 @@ function spfGo(manual) {
 			}
 			
 			if (endofheaders) {
+				/*
+				try {
+					var hdr = messenger.msgHdrFromURI(msgInfo.uri);
+					var storedstatus = hdr.getStringProperty("razor.occams.info/code/spf::status");
+					if (storedstatus != null && storedstatus != "" && !manual) {
+						storedstatus = storedstatus.split("\n");
+						if (storedstatus.length > 0 && storedstatus[0] == "0") {
+							msgInfo.QueryReturn = new Object();
+							msgInfo.QueryReturn.ComputedDate = storedstatus[1];
+							msgInfo.QueryReturn.domain = storedstatus[2];
+							msgInfo.QueryReturn.result = storedstatus[3];
+							msgInfo.QueryReturn.comment = storedstatus[4];
+							msgInfo.QueryReturn.IsFromStorage = true;
+							SVE_OnQueriesComplete(msgInfo);
+							return;
+						}
+					}
+				} catch (e) {
+				}
+				*/
+				
 				SVE_StartCheck(msgInfo);
 				throw "IGNORE_THIS__NOT_A_REAL_PROBLEM"; // abort reading the message since we don't need any more of it
 			}
@@ -889,6 +912,23 @@ function SVE_OnQueriesComplete(msgInfo) {
 }
 
 function SVE_DisplayResult(msgInfo) {
+	// Store the result of the check into the message properties for later recall.
+	if (!msgInfo.QueryReturn.IsFromStorage) {
+		/*try {
+			var hdr = messenger.msgHdrFromURI(msgInfo.uri);
+			hdr.setStringProperty("razor.occams.info/code/spf::status",
+					"0\n" +
+					new Date() + "\n" +
+					msgInfo.QueryReturn.domain + "\n" +
+					msgInfo.QueryReturn.result + "\n" +
+					msgInfo.QueryReturn.comment);
+		} catch (e) {
+		}*/
+	} else {
+		if (msgInfo.QueryReturn.comment != null)
+			msgInfo.QueryReturn.comment += " [" + msgInfo.QueryReturn.ComputedDate + "]"
+	}
+
 	// Set up the explanation label.
 	statusLink.style.display = null;
 	if (msgInfo.QueryReturn.comment == "")
