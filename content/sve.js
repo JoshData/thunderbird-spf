@@ -977,11 +977,33 @@ function SVE_DisplayResult(msgInfo) {
 				statusText.style.color = null;
 				statusLittleBox.label = SVE_STRINGS.CONFIRMED2;
 				statusLittleBox.style.color = "blue";
+				
+				statusText.childNodes[0].nodeValue += " (";
+				
+				var knownstatus = SVE_AddressBookAddressStatus(msgInfo.FromHdr);
+				if (knownstatus.addressKnown)
+					statusText.childNodes[0].nodeValue += SVE_STRINGS.ADDRESS_KNOWN;
+				else if (knownstatus.domainKnown)
+					statusText.childNodes[0].nodeValue += SVE_STRINGS.DOMAIN_KNOWN;
+				else
+					statusText.childNodes[0].nodeValue += SVE_STRINGS.SENDER_UNKNOWN;
+				statusText.childNodes[0].nodeValue += " ";
+				if (knownstatus.domainKnown)
+					statusText.childNodes[0].nodeValue += SVE_STRINGS.USER_NOT_CHECKED(SVE_GetUser(msgInfo.FromHdr));
+				else
+					statusText.childNodes[0].nodeValue += SVE_STRINGS.DO_YOU_TRUST_DOMAIN;
+				statusText.childNodes[0].nodeValue += ")";
 			} else {
+				var knownstatus = SVE_AddressBookAddressStatus(msgInfo.EnvFrom);
+				
 				statusText.childNodes[0].nodeValue = SVE_STRINGS.ENVELOPE_CONFIRMED(msgInfo.QueryReturn.domain);
-				statusText.style.color = "red";
+				if (knownstatus.domainKnown) {
+					statusText.style.color = "blue";
+				} else {
+					statusText.style.color = "red";
+				}
 				statusLittleBox.label = SVE_STRINGS.ENVELOPE_CONFIRMED2(msgInfo.QueryReturn.domain);
-				statusLittleBox.style.color = "red";
+				statusLittleBox.style.color = statusText.style.color;
 
 				if (msgInfo.QueryReturn.promptToTrust) {
 					statusTrust.style.display = null;
@@ -991,8 +1013,6 @@ function SVE_DisplayResult(msgInfo) {
 					return;
 				}
 			}
-			
-			statusText.childNodes[0].nodeValue += " " + SVE_STRINGS.USER_NOT_CHECKED(SVE_GetUser(msgInfo.FromHdr));
 			
 			if (msgInfo.QueryReturn.trustedForwarder)
 				statusText.childNodes[0].nodeValue += " " + SVE_STRINGS.VIA(msgInfo.QueryReturn.trustedForwarder);
@@ -1004,14 +1024,24 @@ function SVE_DisplayResult(msgInfo) {
 			statusLittleBox.style.color = "red";
 			break;
 		case "none":
-			statusText.childNodes[0].nodeValue = SVE_STRINGS.NOT_SUPPORTED;
-			statusText.style.color = "blue";
-			statusLittleBox.label = SVE_STRINGS.NOT_VERIFIED;
-			statusLittleBox.style.color = "red";
-			break;
 		case "neutral":
-			statusText.childNodes[0].nodeValue = SVE_STRINGS.NEUTRAL;
-			statusText.style.color = "blue";
+			switch (msgInfo.QueryReturn.result) {
+				case "none": statusText.childNodes[0].nodeValue = SVE_STRINGS.NOT_SUPPORTED; break;
+				case "neutral": statusText.childNodes[0].nodeValue = SVE_STRINGS.NEUTRAL; break;
+			}
+			
+			var knownstatus = SVE_AddressBookAddressStatus(msgInfo.FromHdr);
+			statusText.childNodes[0].nodeValue += " ";
+			if (knownstatus.addressKnown) {
+				statusText.childNodes[0].nodeValue += SVE_STRINGS.ADDRESS_KNOWN;
+				statusText.style.color = "blue";
+			} else if (knownstatus.domainKnown) {
+				statusText.childNodes[0].nodeValue += SVE_STRINGS.DOMAIN_KNOWN;
+				statusText.style.color = "blue";
+			} else {
+				statusText.childNodes[0].nodeValue += SVE_STRINGS.SENDER_UNKNOWN;
+				statusText.style.color = "red";
+			}
 			statusLittleBox.label = SVE_STRINGS.NOT_VERIFIED;
 			statusLittleBox.style.color = "red";
 			break;
@@ -1055,6 +1085,30 @@ function SVE_DisplayResult(msgInfo) {
 	if (warnunverified && msgInfo.QueryReturn.result != "pass") {
 		alert(SVE_STRINGS.UNVERIFIED_POPUP_ALERT);
 	}
+}
+
+function SVE_AddressBookAddressStatus(address) {
+	var ret = new Object();
+	var addressbook = Components.classes["@mozilla.org/addressbook;1"].createInstance(Components.interfaces.nsIAddressBook);
+	var abDatabase = addressbook.getAbDatabaseFromURI("moz-abmdbdirectory://abook.mab");
+	var enumerator = abDatabase.enumerateCards(null);
+	try {
+	  enumerator.first();
+	  do {
+		 var card = enumerator.currentItem().QueryInterface(Components.interfaces.nsIAbCard);
+		 
+		 var addys = [card.primaryEmail, card.defaultEmail, card.secondEmail];
+		 for (var i = 0; i < addys.length; i++) {
+			 if (addys[i].toLowerCase() == address.toLowerCase())
+				 ret.addressKnown = true;
+			 if (endsWith(addys[i].toLowerCase(), "@" + SVE_GetDomain(address).toLowerCase()))
+				 ret.domainKnown = true;
+		 }
+		 enumerator.next();
+	  } while( Components.lastResult == 0 );
+	} catch(e) {}
+	abDatabase.close(false);
+	return ret;
 }
 
 function SVE_BeginCheck(msgInfo) {
