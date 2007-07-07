@@ -8,6 +8,7 @@
 <!ENTITY options.title "Options">
 <!ENTITY options.general "General">
 <!ENTITY options.checkeveryemail "Check Every Email">
+<!ENTITY options.checkrbls "Use Spam Blacklists SURBL and Spamhaus">
 <!ENTITY options.usedk "Check DomainKeys Signatures">
 <!ENTITY options.usedk.info "(Small bits of your emails are sent over the Internet; see the privacy warning on the website.)">
 <!ENTITY options.popups "Show Popup Warnings for Unverified Emails">

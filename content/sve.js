@@ -42,6 +42,7 @@ var serverurl = "";
 var checkonload = "";
 var usedk = "";
 var warnunverified;
+var checkrbls;
 var onlystatusbar;
 var sve_internal_mtas;
 var sve_internal_mtas_configured;
@@ -74,7 +75,7 @@ messagepane.addEventListener("load", spfGoEvent, true);
 function spfLoadSettings() {
 	var prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
 
-	serverurl = "http://taubz.for.net/code/spf/cgi-bin/query.cgi";
+	serverurl = "http://razor.occams.info/code/spf/cgi-bin/query.cgi";
 	if (prefs.getPrefType("spf.queryserver") == prefs.PREF_STRING) {
 		if (prefs.getCharPref("spf.queryserver") != "")
 			serverurl = prefs.getCharPref("spf.queryserver");
@@ -101,6 +102,12 @@ function spfLoadSettings() {
 	if (prefs.getPrefType("spf.onlystatusbar") == prefs.PREF_STRING
 		&& prefs.getCharPref("spf.onlystatusbar") == "yes") {
 		onlystatusbar = true;
+	}
+	
+	checkrbls = true;
+	if (prefs.getPrefType("spf.rbls") == prefs.PREF_STRING
+		&& prefs.getCharPref("spf.rbls") == "no") {
+		checkrbls = false;
 	}
 	
 	sve_internal_mtas = Array(0);
@@ -1112,7 +1119,10 @@ function SVE_AddressBookAddressStatus(address) {
 }
 
 function SVE_BeginCheck(msgInfo) {
-	SVE_CheckRBLs(msgInfo);
+	if (checkrbls)
+		SVE_CheckRBLs(msgInfo);
+	else
+		SVE_CheckSPF(msgInfo);
 }
 
 function SVE_CheckRBLs(msgInfo) {

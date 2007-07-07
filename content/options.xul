@@ -50,6 +50,11 @@
 			spf_dnsserver.value = DNS_ROOT_NAME_SERVER;
 		}
 			
+		var spf_checkrbls = document.getElementById("spf_checkrbls");
+		spf_checkrbls.checked = true;
+		if (isPref("spf.rbls", "no"))
+			spf_checkrbls.checked = false;
+			
 		initList("spf_mta", "spf.internal_mtas")
 		initList("spf_forwarder", "spf.forwarding_mtas")
 	}
@@ -98,6 +103,9 @@
 		if (!(DNS_FOUND_NAME_SERVER_AUTOMATICALLY &amp;&amp; spf_dnsserver.value == DNS_ROOT_NAME_SERVER)) {
 			prefs.setCharPref("dns.nameserver", spf_dnsserver.value);
 		}
+		
+		var spf_checkrbls = document.getElementById("spf_checkrbls");
+		prefs.setCharPref("spf.rbls", spf_checkrbls.checked ? "yes" : "no");
 	}
 	
 	function mtaUpdateList(listboxname, prefname) {
@@ -165,6 +173,7 @@
 		 <tabpanel>
 			  <vbox>
 			  <checkbox label="&options.checkeveryemail;" id="spf_checkonload"/>
+			  <checkbox label="&options.checkrbls;" id="spf_checkrbls"/>
 			  <checkbox label="&options.usedk;" id="spf_usedk"/>
 			  <description style="margin-left: 2em">&options.usedk.info;</description>
 			  <checkbox label="&options.popups;" id="spf_warnunverified"/>
