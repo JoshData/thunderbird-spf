@@ -55,6 +55,11 @@
 		if (isPref("spf.rbls", "no"))
 			spf_checkrbls.checked = false;
 			
+		var spf_checkab = document.getElementById("spf_checkab");
+		spf_checkab.checked = true;
+		if (isPref("spf.addressbook", "no"))
+			spf_checkab.checked = false;
+			
 		initList("spf_mta", "spf.internal_mtas")
 		initList("spf_forwarder", "spf.forwarding_mtas")
 	}
@@ -106,6 +111,9 @@
 		
 		var spf_checkrbls = document.getElementById("spf_checkrbls");
 		prefs.setCharPref("spf.rbls", spf_checkrbls.checked ? "yes" : "no");
+
+		var spf_checkab = document.getElementById("spf_checkab");
+		prefs.setCharPref("spf.addressbook", spf_checkab.checked ? "yes" : "no");
 	}
 	
 	function mtaUpdateList(listboxname, prefname) {
@@ -177,6 +185,7 @@
 			  <checkbox label="&options.usedk;" id="spf_usedk"/>
 			  <description style="margin-left: 2em">&options.usedk.info;</description>
 			  <checkbox label="&options.popups;" id="spf_warnunverified"/>
+			  <checkbox label="&options.checkab;" id="spf_checkab"/>
 			  <checkbox label="&options.usestatusbar;" id="spf_onlystatusbar"/>
 			  
 			  <separator class="groove-thin"/>

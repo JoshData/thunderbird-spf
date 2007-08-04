@@ -9,6 +9,7 @@
 <!ENTITY options.general "Généralités">
 <!ENTITY options.checkeveryemail "Vérifier tous les courriers">
 <!ENTITY options.checkrbls "Employer les listes noires de spam SURBL et Spamhaus">
+<!ENTITY options.checkab "Rapporter si l'expéditeur est en votre carnet d'adresses personnel. (&quot;L'expéditeur est connu à toi.&quot;)">
 <!ENTITY options.usedk "Vérifier les signatures DomainKeys">
 <!ENTITY options.usedk.info "(Des 'morceaux' de vos courriers sont envoyé sur Internet ; Voir l'avertissement de confidentialité sur la page du site Web.)">
 <!ENTITY options.popups "Afficher la fenêtre d'avertissement pour les messages non-vérifiés">

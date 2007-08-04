@@ -44,6 +44,7 @@ var usedk = "";
 var warnunverified;
 var checkrbls;
 var onlystatusbar;
+var checkab;
 var sve_internal_mtas;
 var sve_internal_mtas_configured;
 
@@ -108,6 +109,12 @@ function spfLoadSettings() {
 	if (prefs.getPrefType("spf.rbls") == prefs.PREF_STRING
 		&& prefs.getCharPref("spf.rbls") == "no") {
 		checkrbls = false;
+	}
+	
+	checkab = true;
+	if (prefs.getPrefType("spf.addressbook") == prefs.PREF_STRING
+		&& prefs.getCharPref("spf.addressbook") == "no") {
+		checkab = false;
 	}
 	
 	sve_internal_mtas = Array(0);
@@ -985,30 +992,39 @@ function SVE_DisplayResult(msgInfo) {
 				statusLittleBox.label = SVE_STRINGS.CONFIRMED2;
 				statusLittleBox.style.color = "blue";
 				
-				statusText.childNodes[0].nodeValue += " (";
-				
-				var knownstatus = SVE_AddressBookAddressStatus(msgInfo.FromHdr);
-				if (knownstatus.addressKnown)
-					statusText.childNodes[0].nodeValue += SVE_STRINGS.ADDRESS_KNOWN;
-				else if (knownstatus.domainKnown)
-					statusText.childNodes[0].nodeValue += SVE_STRINGS.DOMAIN_KNOWN;
-				else
-					statusText.childNodes[0].nodeValue += SVE_STRINGS.SENDER_UNKNOWN;
-				statusText.childNodes[0].nodeValue += " ";
-				if (knownstatus.domainKnown)
-					statusText.childNodes[0].nodeValue += SVE_STRINGS.USER_NOT_CHECKED(SVE_GetUser(msgInfo.FromHdr));
-				else
-					statusText.childNodes[0].nodeValue += SVE_STRINGS.DO_YOU_TRUST_DOMAIN;
-				statusText.childNodes[0].nodeValue += ")";
-			} else {
-				var knownstatus = SVE_AddressBookAddressStatus(msgInfo.EnvFrom);
-				
-				statusText.childNodes[0].nodeValue = SVE_STRINGS.ENVELOPE_CONFIRMED(msgInfo.QueryReturn.domain);
-				if (knownstatus.domainKnown) {
-					statusText.style.color = "blue";
-				} else {
-					statusText.style.color = "red";
+				if (checkab) {
+					statusText.childNodes[0].nodeValue += " (";
+					
+					var knownstatus = SVE_AddressBookAddressStatus(msgInfo.FromHdr);
+					if (knownstatus.addressKnown)
+						statusText.childNodes[0].nodeValue += SVE_STRINGS.ADDRESS_KNOWN;
+					else if (knownstatus.domainKnown)
+						statusText.childNodes[0].nodeValue += SVE_STRINGS.DOMAIN_KNOWN;
+					else
+						statusText.childNodes[0].nodeValue += SVE_STRINGS.SENDER_UNKNOWN;
+					statusText.childNodes[0].nodeValue += " ";
+					if (knownstatus.domainKnown)
+						statusText.childNodes[0].nodeValue += SVE_STRINGS.USER_NOT_CHECKED(SVE_GetUser(msgInfo.FromHdr));
+					else
+						statusText.childNodes[0].nodeValue += SVE_STRINGS.DO_YOU_TRUST_DOMAIN;
+					
+					statusText.childNodes[0].nodeValue += ")";
 				}
+			} else {
+				statusText.childNodes[0].nodeValue = SVE_STRINGS.ENVELOPE_CONFIRMED(msgInfo.QueryReturn.domain);
+
+				if (checkab) {
+					var knownstatus = SVE_AddressBookAddressStatus(msgInfo.EnvFrom);
+				
+					if (knownstatus.domainKnown) {
+						statusText.style.color = "blue";
+					} else {
+						statusText.style.color = "red";
+					}
+				} else {
+					statusText.style.color = "blue";
+				}
+				
 				statusLittleBox.label = SVE_STRINGS.ENVELOPE_CONFIRMED2(msgInfo.QueryReturn.domain);
 				statusLittleBox.style.color = statusText.style.color;
 
@@ -1037,18 +1053,23 @@ function SVE_DisplayResult(msgInfo) {
 				case "neutral": statusText.childNodes[0].nodeValue = SVE_STRINGS.NEUTRAL; break;
 			}
 			
-			var knownstatus = SVE_AddressBookAddressStatus(msgInfo.FromHdr);
-			statusText.childNodes[0].nodeValue += " ";
-			if (knownstatus.addressKnown) {
-				statusText.childNodes[0].nodeValue += SVE_STRINGS.ADDRESS_KNOWN;
-				statusText.style.color = "blue";
-			} else if (knownstatus.domainKnown) {
-				statusText.childNodes[0].nodeValue += SVE_STRINGS.DOMAIN_KNOWN;
-				statusText.style.color = "blue";
+			if (checkab) {
+				var knownstatus = SVE_AddressBookAddressStatus(msgInfo.FromHdr);
+				statusText.childNodes[0].nodeValue += " ";
+				if (knownstatus.addressKnown) {
+					statusText.childNodes[0].nodeValue += SVE_STRINGS.ADDRESS_KNOWN;
+					statusText.style.color = "blue";
+				} else if (knownstatus.domainKnown) {
+					statusText.childNodes[0].nodeValue += SVE_STRINGS.DOMAIN_KNOWN;
+					statusText.style.color = "blue";
+				} else {
+					statusText.childNodes[0].nodeValue += SVE_STRINGS.SENDER_UNKNOWN;
+					statusText.style.color = "red";
+				}
 			} else {
-				statusText.childNodes[0].nodeValue += SVE_STRINGS.SENDER_UNKNOWN;
-				statusText.style.color = "red";
+				statusText.style.color = "blue";
 			}
+			
 			statusLittleBox.label = SVE_STRINGS.NOT_VERIFIED;
 			statusLittleBox.style.color = "red";
 			break;
