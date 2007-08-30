@@ -48,4 +48,6 @@ SVE_STRINGS.SPF1 = "Performing SPF verification...";
 SVE_STRINGS.SPF2 = "SVE: Checking SPF...";
 SVE_STRINGS.DNS_TAKING_TIME = "[Try setting DNS server in options.]";
 SVE_STRINGS.SERVER_ERROR = "There was a server error.";
+SVE_STRINGS.REPUTABLE_SENDER = "Reputable Sender";
+SVE_STRINGS.CHECK_DOMAIN_CAREFULLY = "Check domain carefully.";
 

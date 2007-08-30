@@ -992,7 +992,14 @@ function SVE_DisplayResult(msgInfo) {
 				statusLittleBox.label = SVE_STRINGS.CONFIRMED2;
 				statusLittleBox.style.color = "blue";
 				
-				if (checkab) {
+				if (msgInfo.wl_trust != null) {
+					statusText.childNodes[0].nodeValue += " -- ";
+					statusText.childNodes[0].nodeValue += msgInfo.wl_trust;
+					if (msgInfo.dnswl_cat != null)
+						statusText.childNodes[0].nodeValue += " (" + msgInfo.dnswl_cat + ")";
+					statusLink.childNodes[0].nodeValue += " Reputation information reported by " + msgInfo.wl_trust_mech;
+					
+				} else if (checkab) {
 					statusText.childNodes[0].nodeValue += " (";
 					
 					var knownstatus = SVE_AddressBookAddressStatus(msgInfo.FromHdr);
@@ -1009,6 +1016,8 @@ function SVE_DisplayResult(msgInfo) {
 						statusText.childNodes[0].nodeValue += SVE_STRINGS.DO_YOU_TRUST_DOMAIN;
 					
 					statusText.childNodes[0].nodeValue += ")";
+				} else {
+					statusText.childNodes[0].nodeValue += " (" + SVE_STRINGS.CHECK_DOMAIN_CAREFULLY + ")";
 				}
 			} else {
 				statusText.childNodes[0].nodeValue = SVE_STRINGS.ENVELOPE_CONFIRMED(msgInfo.QueryReturn.domain);
@@ -1021,6 +1030,7 @@ function SVE_DisplayResult(msgInfo) {
 					} else {
 						statusText.style.color = "red";
 					}
+					
 				} else {
 					statusText.style.color = "blue";
 				}
@@ -1150,7 +1160,7 @@ function SVE_CheckRBLs(msgInfo) {
 	statusText.childNodes[0].nodeValue = SVE_STRINGS.CHECKING_RBLS1;
 	statusLittleBox.label = SVE_STRINGS.CHECKING_RBLS2;
 	
-	SVE_CheckSURBL(msgInfo);
+	SVE_CheckDNSWL(msgInfo);
 }
 
 function SVE_CheckSURBL(msgInfo) {
@@ -1182,8 +1192,68 @@ function SVE_CheckSpamhaus(msgInfo) {
 				SVE_OnQueriesComplete(msgInfo);
 			}
 		});
+}
 
-	
+function SVE_CheckDNSWL(msgInfo) {
+	// Check www.dnswl.org whitelist.
+	queryDNS(
+		msgInfo.IPAddr.split('.').reverse().join('.') + ".list.dnswl.org",
+		"A",
+		function(addr) {
+			if (addr == null) {
+				SVE_CheckSenderScoreCertified(msgInfo);
+			} else {
+				// It is white-listed, but parse the returned
+				// IP address for status.
+				
+				ip = addr.split('.');
+				
+				switch (ip[2]) {
+				case 2: msgInfo.dnswl_cat = "Financial"; break;
+				case 3: msgInfo.dnswl_cat = "Newsletter"; break;
+				case 5: msgInfo.dnswl_cat = "ISP"; break;
+				case 7: msgInfo.dnswl_cat = "Travel"; break;
+				case 8: msgInfo.dnswl_cat = "Govt/Public"; break;
+				case 9: msgInfo.dnswl_cat = "Media/Tech"; break;
+				case 11: msgInfo.dnswl_cat = "Educ."; break;
+				case 12: msgInfo.dnswl_cat = "Health"; break;
+				case 14: msgInfo.dnswl_cat = "Retail"; break;
+				}
+				
+				switch (ip[3]) {
+				case 0: break; // none
+				case 1: break; // low
+				case 2: // medium
+				case 3: // high
+					msgInfo.wl_trust = SVE_STRINGS.REPUTABLE_SENDER;
+					msgInfo.wl_trust_mech = "DNSWL.org";
+					break;
+				}
+				
+				// Skip other white/blacklists and go on to SPF.
+				SVE_CheckSPF(msgInfo);
+			}
+		});
+}
+
+function SVE_CheckSenderScoreCertified(msgInfo) {
+	// Check www.bondedsender.org Sender Score Certified whitelist.
+	queryDNS(
+		msgInfo.IPAddr.split('.').reverse().join('.') + ".query.bondedsender.org",
+		"A",
+		function(addr) {
+			if (addr == null || addr != "127.0.0.10") {
+				// Not white-listed, so check the blacklists and then do SPF.
+				SVE_CheckSURBL(msgInfo);
+			} else {
+				// It is white-listed.
+
+				msgInfo.wl_trust = SVE_STRINGS.REPUTABLE_SENDER;
+				msgInfo.wl_trust_mech = "Sender Score Certified (bondedsender.org)";
+				
+				SVE_CheckSPF(msgInfo);
+			}
+		});
 }
 
 function SVE_SetStatusFromRBL(rbl, msgInfo) {
