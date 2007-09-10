@@ -1209,10 +1209,18 @@ function SVE_CheckDNSWL(msgInfo) {
 				addr = addr[0];
 				ip = addr.split('.');
 				
-				switch (ip[2]) {
+				switch (parseInt(ip[2])) {
 				case 2: msgInfo.dnswl_cat = "Financial"; break;
 				case 3: msgInfo.dnswl_cat = "Newsletter"; break;
-				case 5: msgInfo.dnswl_cat = "ISP"; break;
+				case 5:
+					// This category is for ISPs. But on principle,
+					// I don't want to label mail from ISPs as
+					// reputable. So we skip WL labeling and go to SPF.
+					SVE_CheckSPF(msgInfo);
+					return;
+					
+					msgInfo.dnswl_cat = "ISP";
+					break;
 				case 7: msgInfo.dnswl_cat = "Travel"; break;
 				case 8: msgInfo.dnswl_cat = "Govt/Public"; break;
 				case 9: msgInfo.dnswl_cat = "Media/Tech"; break;
@@ -1221,7 +1229,7 @@ function SVE_CheckDNSWL(msgInfo) {
 				case 14: msgInfo.dnswl_cat = "Retail"; break;
 				}
 				
-				switch (ip[3]) {
+				switch (parseInt(ip[3])) {
 				case 0: break; // none
 				case 1: break; // low
 				case 2: // medium
