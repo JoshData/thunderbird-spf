@@ -1206,6 +1206,7 @@ function SVE_CheckDNSWL(msgInfo) {
 				// It is white-listed, but parse the returned
 				// IP address for status.
 				
+				addr = addr[0];
 				ip = addr.split('.');
 				
 				switch (ip[2]) {
