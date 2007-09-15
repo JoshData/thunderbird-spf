@@ -73,6 +73,8 @@ var messagepane = document.getElementById("messagepane");
 messagepane.addEventListener("load", sveRearrangeBoxes, true);
 messagepane.addEventListener("load", spfGoEvent, true);
 
+//SVE_TestReceivedLine("");
+
 function spfLoadSettings() {
 	var prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
 
@@ -320,24 +322,11 @@ function spfGo(manual) {
 				m = DateRegEx.exec(this.h);
 				if (m) { msgInfo.DateHdr = Date.parse(m[1]); }
 				
-				var he = null;
-				var ip = null;
+				var receivedParse = SVE_ParseReceivedLine(this.h);
 				
-				m = ReceivedRegEx.exec(this.h);
-				if (m) { he = m[1]; ip = m[2]; }
+				var he = receivedParse.he;
+				var ip = receivedParse.ip;
 				
-				m = ReceivedRegEx2.exec(this.h);
-				if (m) { ip = m[1]; he = m[2]; }
-					
-				m = ReceivedRegEx3.exec(this.h);
-				if (m) { he = m[1]; ip = m[2]; }
-		
-				m = ReceivedRegEx4.exec(this.h);
-				if (m) { he = m[2]; ip = m[3]; }
-
-				m = ReceivedRegEx5.exec(this.h);
-				if (m) { ip = m[1]; he = m[2]; }
-
 				if (he != null && ip != null) {
 					var internal = 0;
 					for (var mta_index = 0; mta_index < sve_internal_mtas.length; mta_index++) {
@@ -432,6 +421,34 @@ function spfGo(manual) {
 		return;
 	}
 	
+}
+
+function SVE_ParseReceivedLine(h) {
+	var m;
+	var he = null;
+	var ip = null;
+	
+	m = ReceivedRegEx.exec(h);
+	if (m) { he = m[1]; ip = m[2]; }
+	
+	m = ReceivedRegEx2.exec(h);
+	if (m) { ip = m[1]; he = m[2]; }
+		
+	m = ReceivedRegEx3.exec(h);
+	if (m) { he = m[1]; ip = m[2]; }
+
+	m = ReceivedRegEx4.exec(h);
+	if (m) { he = m[2]; ip = m[3]; }
+
+	m = ReceivedRegEx5.exec(h);
+	if (m) { ip = m[1]; he = m[2]; }
+	
+	return { he: he, ip: ip };
+}
+
+function SVE_TestReceivedLine(h) {
+	var ret = SVE_ParseReceivedLine(h);
+	alert("IP=" + ret.ip + "; HELO=" + ret.he);
 }
 
 function SVE_StartCheck(msgInfo) {
