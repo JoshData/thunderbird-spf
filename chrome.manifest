@@ -1,5 +1,6 @@
 content  spf        jar:chrome/sve.jar!/content/
 locale   spf en-US  jar:chrome/sve.jar!/locale/en-US/
+locale   spf es-ES  jar:chrome/sve.jar!/locale/es-ES/
 locale   spf fr-FR  jar:chrome/sve.jar!/locale/fr-FR/
 overlay  chrome://messenger/content/msgHdrViewOverlay.xul  chrome://spf/content/spf.xul
 overlay  chrome://messenger/content/mailWindowOverlay.xul  chrome://spf/content/statusoverlay.xul
