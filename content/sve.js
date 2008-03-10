@@ -252,7 +252,8 @@ function spfGo(manual) {
 	msgInfo.DKHash = null;
 	
 	var msgService = messenger.messageServiceFromURI(uri);
-	var prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
+
+	msgInfo.HeaderObj = messenger.msgHdrFromURI(uri);
 	
     var dataListener = {
 		stream : null,
@@ -1000,6 +1001,9 @@ function SVE_DisplayResult(msgInfo) {
 	if ((msgInfo.QueryReturn.result == "none" || msgInfo.QueryReturn.result == "neutral") && msgInfo.QueryReturn.couldTryDK)
 		msgInfo.QueryReturn.result = "neutraltrydk";
 	
+	if (msgInfo.QueryReturn.result == "fail" && msgInfo.LocalSender)
+		msgInfo.QueryReturn.result = "localsender";
+	
 	if (!msgInfo.IsViaMailList)
 	switch (msgInfo.QueryReturn.result) {
 		case "pass":
@@ -1071,6 +1075,12 @@ function SVE_DisplayResult(msgInfo) {
 			statusText.childNodes[0].nodeValue = SVE_STRINGS.FORGED(msgInfo.QueryReturn.domain);
 			statusText.style.color = "red";
 			statusLittleBox.label = SVE_STRINGS.FORGED2;
+			statusLittleBox.style.color = "red";
+			break;
+		case "localsender":
+			statusText.childNodes[0].nodeValue = SVE_STRINGS.LOCALSENDER(msgInfo.QueryReturn.domain);
+			statusText.style.color = "blue";
+			statusLittleBox.label = SVE_STRINGS.NOT_VERIFIED;
 			statusLittleBox.style.color = "red";
 			break;
 		case "none":
@@ -1167,13 +1177,57 @@ function SVE_AddressBookAddressStatus(address) {
 }
 
 function SVE_BeginCheck(msgInfo) {
-	if (checkrbls)
-		SVE_CheckRBLs(msgInfo);
+	SVE_CheckLocalMail(msgInfo);
+}
+
+function SVE_CheckLocalMail(msgInfo) {
+	// When the user's incoming MTA is the SMTP server that originally accepted the message,
+	// then the MTA does not insert a Received: line for itself and the first line indicates the
+	// IP address of the sender's own personal computer. As a result, we don't get a line that
+	// authorizes the sender. This yields the right message here in most cases because a user
+	// who doesn't go through his proper MTA shouldn't be authorized. But when his proper
+	// MTA is the user's incoming MTA, then we have an email that looks bad but isn't.
+	// What we want to know is: If a sender claims domain D and the user's MTA is a submission
+	// server for domain D, and the user's MTA isn't an open relay, then the sender is authorized.
+	// However, we can't know all of that. And since we can't know whether the MTA is an open
+	// relay (i.e. whether the sender authenticated at that point), the best we can do is turn
+	// failures into warnings.
+	// So: 
+	// If a sender claims domain D and the user's MTA is SPF-permitted by D, then mark this
+	// message appropriately for a special warning later.
+	
+	if (DNS_IsDottedQuad(msgInfo.HeaderObj.folder.server.realHostName))
+		SVE_CheckLocalMail2(msgInfo.HeaderObj.folder.server.realHostName, msgInfo);
 	else
-		SVE_CheckSPF(msgInfo);
+		queryDNS(msgInfo.HeaderObj.folder.server.realHostName, "A",
+			function(dnsresult) {
+				if (dnsresult != null)
+					SVE_CheckLocalMail2(dnsresult[0], msgInfo);
+				else
+					SVE_CheckRBLs(msgInfo);
+			}
+			, null);
+}
+
+function SVE_CheckLocalMail2(ipaddr, msgInfo) {
+	SPF(ipaddr, SVE_GetDomain(msgInfo.FromHdr),
+			function(spfresult) {
+				if (spfresult.status == "+") {
+					msgInfo.LocalSender = true;
+					SVE_CheckSPF(msgInfo); // can skip RBL check if it's own own domain
+				} else {
+					SVE_CheckRBLs(msgInfo);
+				}
+			}
+		);
 }
 
 function SVE_CheckRBLs(msgInfo) {
+	if (!checkrbls) {
+		SVE_CheckSPF(msgInfo);
+		return;
+	}
+		
 	statusText.childNodes[0].nodeValue = SVE_STRINGS.CHECKING_RBLS1;
 	statusLittleBox.label = SVE_STRINGS.CHECKING_RBLS2;
 	

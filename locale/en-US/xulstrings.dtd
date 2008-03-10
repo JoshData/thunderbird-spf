@@ -14,12 +14,13 @@
 <!ENTITY options.usedk.info "(Small bits of your emails are sent over the Internet; see the privacy warning on the website.)">
 <!ENTITY options.popups "Show Popup Warnings for Unverified Emails">
 <!ENTITY options.usestatusbar "Show Verification Result in Status Bar">
+<!ENTITY options.mtasforwarders "Special Mail Servers">
 <!ENTITY options.mtas "Internal Network Servers:">
 <!ENTITY options.remove "Remove">
 <!ENTITY options.add "Add">
-<!ENTITY options.mtainfo "These are IP addresses of servers in your internal network. (You may use CIDR and wildcards, e.g. 123.456.789.* or 123.456.789.0/24)">
+<!ENTITY options.mtainfo "List above any IP addresses of mail servers in your ISP's network that receive mail for your domain, besides your configured incoming mail server. (You may also use CIDR and wildcards, e.g. 123.456.789.* or 123.456.789.0/24)">
 <!ENTITY options.forwarders "Forwarding Hosts:">
-<!ENTITY options.forwardersinfo "These are <b>hostnames</b> of servers that forward mail to you, including mail list servers and mail forwarders.">
+<!ENTITY options.forwardersinfo "List above the <b>hostnames</b> of servers that forward mail to you, including mail forwarders and mail list servers.">
 <!ENTITY options.advanced "Advanced Settings">
 <!ENTITY options.verificationserver "DK Verification Server:">
 <!ENTITY options.verificationserverinfo "This is the address of the server which will be contacted to perform DomainKeys verifications if Check DomainKeys Signatures is checked above.  Leave blank to use the default server.">

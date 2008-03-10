@@ -14,14 +14,13 @@
 <!ENTITY options.usedk.info "(Des 'morceaux' de vos courriers sont envoyé sur Internet ; Voir l'avertissement de confidentialité sur la page du site Web.)">
 <!ENTITY options.popups "Afficher la fenêtre d'avertissement pour les messages non-vérifiés">
 <!ENTITY options.usestatusbar "Montrer les résultats de la vérification dans la barre d'état">
+<!ENTITY options.mtasforwarders "Spécial Serveurs de Messagerie"> <!-- This needs to be updated. -->
 <!ENTITY options.mtas "Serveurs du réseau Interne:">
 <!ENTITY options.remove "Retirer">
 <!ENTITY options.add "Ajouter">
-<!ENTITY options.mtainfo "Voici les adresses IP de vos serveurs sur le réseau interne. (Vous pouvez utiliser CIDR et les jokers, ex: 123.456.789.* ou
-123.456.789.0/24)">
+<!ENTITY options.mtainfo "Voici les adresses IP de vos serveurs sur le réseau interne. (Vous pouvez utiliser CIDR et les jokers, ex: 123.456.789.* ou 123.456.789.0/24)"> <!-- This needs to be updated. -->
 <!ENTITY options.forwarders "Hébergeurs de renvois:">
-<!ENTITY options.forwardersinfo "Voici les noms <b>hostnames</b> des serveurs
-qui vous envoient du courrier, sont inclus les serveurs de liste de courriers et ceux de renvois.">
+<!ENTITY options.forwardersinfo "Voici les noms <b>hostnames</b> des serveurs qui vous envoient du courrier, sont inclus les serveurs de liste de courriers et ceux de renvois."> <!-- This needs to be updated. -->
 <!ENTITY options.advanced "Arrangements Avançés">
 <!ENTITY options.verificationserver "Vérification de serveurs DK:">
 <!ENTITY options.verificationserverinfo "Voici l'adresse du serveur qui sera contacté pour effectuer les vérifications DomainKeys si l'option de vérification des signatures DomainKeys est cochée ci-dessus. Laisser en blanc pour utiliser le serveur par défaut.">

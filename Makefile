@@ -38,7 +38,7 @@ package: sve.xpi
 	ln -sf thunderbird-sve-`date +%F`.tgz archive/thunderbird-sve.tgz
 
 cheapupdate: chrome/sve.jar
-	cp chrome/sve.jar ~/.thunderbird/default/*/extensions/\{ff7e40e0-08b4-11d9-9669-0800200c9a66\}/chrome/sve.jar
+	cp chrome/sve.jar ~/.mozilla-thunderbird/default/*/extensions/\{ff7e40e0-08b4-11d9-9669-0800200c9a66\}/chrome/sve.jar
 
 deploy: package
 	scp sve.xpi archive/thunderbird-sve.tgz publius:www/code/spf

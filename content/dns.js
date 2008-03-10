@@ -523,3 +523,11 @@ function DNS_StartsWith(a, b) {
 	return a.substring(0, b.length) == b;
 }
 
+function DNS_IsDottedQuad(ip) {
+	var q = ip.split(".");
+	if (q.length != 4)
+		return false;
+	if (isNaN(parseInt(q[0])) || isNaN(parseInt(q[1])) || isNaN(parseInt(q[2])) || isNaN(parseInt(q[3])))
+		return false;
+	return true;
+}

@@ -14,12 +14,13 @@
 <!ENTITY options.usedk.info "(Pequeños bits del correo son enviados por Internet; mira el aviso de privacidad en la página web.)">
 <!ENTITY options.popups "Mostrar Ventanas de Aviso para los Correos sin Verificar">
 <!ENTITY options.usestatusbar "Mostrar Resultados de la Verificación en la Barra de Estado">
+<!ENTITY options.mtasforwarders "Especial Servidores de Correo"> <!-- This needs to be updated. -->
 <!ENTITY options.mtas "Servidores de Red Interna:">
 <!ENTITY options.remove "Borrar">
 <!ENTITY options.add "Añadir">
-<!ENTITY options.mtainfo "Estas direcciones IP son de los servidores de tu red interna. (Puedes usar CIDR y wildcards, ej. 123.456.789.* o 123.456.789.0/24)">
+<!ENTITY options.mtainfo "Estas direcciones IP son de los servidores de tu red interna. (Puedes usar CIDR y wildcards, ej. 123.456.789.* o 123.456.789.0/24)"> <!-- This needs to be updated. -->
 <!ENTITY options.forwarders "Forwarding Hosts:">
-<!ENTITY options.forwardersinfo "Estos son <b>nombres de host</b> de los servidores que te envían correos, incluyendo las listas de servidores y reenviadores.">
+<!ENTITY options.forwardersinfo "Estos son <b>nombres de host</b> de los servidores que te envían correos, incluyendo las listas de servidores y reenviadores."> <!-- This needs to be updated. -->
 <!ENTITY options.advanced "Ajustes Avanzados">
 <!ENTITY options.verificationserver "Servidor de Verificación DK:">
 <!ENTITY options.verificationserverinfo "Esta es la dirección del servidor al que se conectará para verificar las DomainKeys si Activa la Verificación de Firmas DomainKeys.  Déjelo en blanco para usar el servidor por defecto.">
