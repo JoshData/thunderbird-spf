@@ -8,6 +8,7 @@ SVE_STRINGS.CANNOT_FIND_FROM = "No se puede determinar la dirección del remiten
 SVE_STRINGS.MESSAGE_TOO_OLD = "El mensaje es muy viejo para ser verificado.";
 SVE_STRINGS.MESSAGE_IN_FUTURE = "La fecha del mensaje está en el futuro.  La verificación será omitida.";
 SVE_STRINGS.LOCAL_MAIL = "El mail se originó en su servidor, o no se pueden interpretar las cabeceras.";
+SVE_STRINGS.DOMAIN_LISTED_NOT_CHECKED = "Reclamada dominio del remitente está en su lista de dominios para omitir la verificación."; // Google'd
 SVE_STRINGS.CHECKING_DK = "SVE: Comprobando DK...";
 SVE_STRINGS.DK_COMPUTING_SIGNATURE = "Comprobando... (Procesando la firma DomainKeys...)";
 SVE_STRINGS.DK_ABORTED1 = "La verificación DomainKeys tardará demasiado tiempo.  No se puede verificar el remitente.";

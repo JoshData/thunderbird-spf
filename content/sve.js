@@ -47,6 +47,7 @@ var onlystatusbar;
 var checkab;
 var sve_internal_mtas;
 var sve_internal_mtas_configured;
+var sve_nocheckdomains;
 
 // GLOBAL VARIABLES
 // Yes it's a bad way to program, but it seems necessary in order
@@ -117,6 +118,11 @@ function spfLoadSettings() {
 	if (prefs.getPrefType("spf.addressbook") == prefs.PREF_STRING
 		&& prefs.getCharPref("spf.addressbook") == "no") {
 		checkab = false;
+	}
+	
+	sve_nocheckdomains = Array(0);
+	if (prefs.getPrefType("spf.nocheckdomains") == prefs.PREF_STRING) {
+		sve_nocheckdomains = prefs.getCharPref("spf.nocheckdomains").replace(" ", "", "g").split(",");
 	}
 	
 	sve_internal_mtas = Array(0);
@@ -499,6 +505,14 @@ function SVE_StartCheck(msgInfo) {
 		statusText.childNodes[0].nodeValue = SVE_STRINGS.LOCAL_MAIL;
 		statusLittleBox.label = SVE_STRINGS.NOT_APPLICABLE2;
 		return;
+	}
+	
+	for (var i = 0; i < sve_nocheckdomains.length; i++) {
+		if ((SVE_GetDomain(msgInfo.FromHdr) == sve_nocheckdomains[i]) || startsWith(SVE_GetDomain(msgInfo.FromHdr), "." + sve_nocheckdomains[i])) {
+			statusText.childNodes[0].nodeValue = SVE_STRINGS.DOMAIN_LISTED_NOT_CHECKED;
+			statusLittleBox.label = SVE_STRINGS.NOT_APPLICABLE2;
+			return;
+		}
 	}
 
 	SVE_BeginCheck(msgInfo);

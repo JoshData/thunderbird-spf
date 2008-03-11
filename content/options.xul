@@ -60,6 +60,11 @@
 		if (isPref("spf.addressbook", "no"))
 			spf_checkab.checked = false;
 			
+		var spf_nocheckdomains = document.getElementById("spf_nocheckdomains");
+		spf_nocheckdomains.value = "";
+		if (prefs.getPrefType("spf.nocheckdomains") == prefs.PREF_STRING)
+			spf_nocheckdomains.value = prefs.getCharPref("spf.nocheckdomains");;
+
 		initList("spf_mta", "spf.internal_mtas")
 		initList("spf_forwarder", "spf.forwarding_mtas")
 	}
@@ -114,6 +119,9 @@
 
 		var spf_checkab = document.getElementById("spf_checkab");
 		prefs.setCharPref("spf.addressbook", spf_checkab.checked ? "yes" : "no");
+
+		var spf_nocheckdomains = document.getElementById("spf_nocheckdomains");
+		prefs.setCharPref("spf.nocheckdomains", spf_nocheckdomains.value);
 	}
 	
 	function mtaUpdateList(listboxname, prefname) {
@@ -229,6 +237,12 @@
 				<label value="&options.verificationserver;" class="header"/>
 				<textbox id="spf_queryserver" style="width: 10em"/>
 				<description style="width: 30em">&options.verificationserverinfo;</description>
+				
+			  	<separator class="groove-thin" style="margin: 1em 0em 1em 0em"/>
+
+				<label value="&options.nocheckdomains;" class="header"/>
+				<textbox id="spf_nocheckdomains" style="width: 10em"/>
+				<description style="width: 30em">&options.nocheckdomainsinfo;</description>
 			</vbox>
 		 </tabpanel>
 	  </tabpanels>

@@ -26,6 +26,8 @@
 <!ENTITY options.verificationserverinfo "Esta es la dirección del servidor al que se conectará para verificar las DomainKeys si Activa la Verificación de Firmas DomainKeys.  Déjelo en blanco para usar el servidor por defecto.">
 <!ENTITY options.dns "Servidor DNS:">
 <!ENTITY options.dnsinfo "Opcionalmente proporciona la IP o el nombre de host de tu servidor DNS propio.  Déjelo en blanco para auto-detectarlo.  Puede requerir reiniciar Thunderbird.  Si está detrás de un firewall y la extensión reporta problemas de conexión TCP por tiempo, intente usar esto: occams.info:9053">
+<!ENTITY options.nocheckdomains "No Comprobar Estos Dominios:"> <!-- Google'd -->
+<!ENTITY options.nocheckdomainsinfo "Lista de nombres de dominio (por ejemplo, gmx.net), separados por comas, para que la verificación del remitente no se deben realizar."> <!-- Google'd -->
 
 <!ENTITY forwarders.title "Reenviadores Seguros">
 <!ENTITY forwarders.header.one "Reconociendo a los Reenviadores Seguros">

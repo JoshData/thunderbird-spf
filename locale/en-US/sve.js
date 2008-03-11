@@ -8,6 +8,7 @@ SVE_STRINGS.CANNOT_FIND_FROM = "Cannot determine sender address from mail messag
 SVE_STRINGS.MESSAGE_TOO_OLD = "Message is too old to verify sender.";
 SVE_STRINGS.MESSAGE_IN_FUTURE = "Message date is in the future.  Sender verification skipped.";
 SVE_STRINGS.LOCAL_MAIL = "Mail originates from your mail server, or message headers could not be understood.";
+SVE_STRINGS.DOMAIN_LISTED_NOT_CHECKED = "Sender's claimed domain is in your list of domains to skip verification.";
 SVE_STRINGS.CHECKING_DK = "SVE: Checking DK...";
 SVE_STRINGS.DK_COMPUTING_SIGNATURE = "Checking... (Computing DomainKeys signature...)";
 SVE_STRINGS.DK_ABORTED1 = "DomainKeys verification will take too long.  Cannot verify sender.";

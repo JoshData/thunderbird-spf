@@ -8,6 +8,7 @@ SVE_STRINGS.CANNOT_FIND_FROM = "N'arrive pas a déterminer l'adresse de l'expéd
 SVE_STRINGS.MESSAGE_TOO_OLD = "Le Message est trop ancien pour en verifier l'expéditeur.";
 SVE_STRINGS.MESSAGE_IN_FUTURE = "La date de ce Message est a venir. La vérification de son expéditeur saute.";
 SVE_STRINGS.LOCAL_MAIL = "Le courier provient de votre serveur de courrier ou l'entête du message n'a su être interprétée.";
+SVE_STRINGS.DOMAIN_LISTED_NOT_CHECKED = "Expéditeur domaine est revendiquée dans la liste de vos domaines à sauter vérification."; // Google'd
 SVE_STRINGS.CHECKING_DK = "SVE: Vérification DK...";
 SVE_STRINGS.DK_COMPUTING_SIGNATURE = "Effectue la vérification... (Calcul de la signature DomainKeys...)";
 SVE_STRINGS.DK_ABORTED1 = "La vérification DomainKeys prend trop de temps.  Pas de vérification de l'expéditeur possible.";
