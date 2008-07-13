@@ -372,8 +372,8 @@ function spfGo(manual) {
 					}
 				}
 			
-				if (startsWith(this.h, "DomainKey-Signature: ") && msgInfo.DKHeader == null) {
-					// DKHeader != null to make sure we only read the first DK header in the message.
+				if (startsWith(this.h, "DKIM-Signature: ") && msgInfo.DKHeader == null) {
+					// DKHeader != null to make sure we only read the first DKIM header in the message.
 					msgInfo.DKHeader = this.h.substring(21, this.h.length);
 					this.hlast = "DK";
 					msgInfo.DKHeaderPostPosition = this.bytesread; // message hash starts from this position
@@ -534,13 +534,20 @@ function SVE_TryDK(msgInfo) {
 		h = "";
 		var v;
 		
-		var DK_ALGO = "rsa-sha1";
+		var DK_VERSION = null;
+		var DK_ALGO = null;
 		var DK_SIG = null;
-		var DK_CAN = null;
+		var DK_HASH = null;
+		var DK_CAN = "simple/simple";
 		var DK_DOMAIN = null;
 		var DK_HEADERS = null;
-		var DK_QMETHOD = null;
+		var DK_IDENTITY = null;
+		var DK_BODYLENGTH = null;
+		var DK_QMETHOD = "dns/txt";
 		var DK_SELECTOR = null;
+		var DK_TIMESTAMP = null;
+		var DK_EXPIRATION = null;
+		var DK_COPIEDHEADERS = null;
 		
 		for (csi = 0; csi < msgInfo.DKHeader.length; csi++) {
 			c = msgInfo.DKHeader.charAt(csi);
@@ -557,13 +564,20 @@ function SVE_TryDK(msgInfo) {
 					v += c;
 				if (c == ";" || csi == msgInfo.DKHeader.length-1) {
 					switch (h) {
+						case "v": DK_VERSION = v; break;
 						case "a": DK_ALGO = v; break;
 						case "b": DK_SIG = v; break;
+						case "bh": DK_HASH = v; break;
 						case "c": DK_CAN = v; break;
 						case "d": DK_DOMAIN = v.toLowerCase(); break;
 						case "h": DK_HEADERS = ":" + v.toLowerCase() + ":"; break;
+						case "i": DK_IDENTITY = v.toLowerCase(); break;
+						case "l": DK_BODYLENGTH = v; break;
 						case "q": DK_QMETHOD = v; break;
 						case "s": DK_SELECTOR = v; break;
+						case "t": DK_TIMESTAMP = v; break;
+						case "x": DK_EXPIRATION = v; break;
+						case "z": DK_COPIEDHEADERS = v; break;
 					}
 					
 					mode = 0;
@@ -571,6 +585,8 @@ function SVE_TryDK(msgInfo) {
 				}
 			}
 		}
+		
+		// TODO: This domain MUST be the same as or a parent domain of the "i=" tag (the signing identity, as described below), or it MUST meet the requirements for parent domain signing described in Section 3.8. 
 		
 		// Check that required tags are present, and if so compute the email hash
 		if (DK_SIG != null && (DK_CAN == "simple" || DK_CAN == "nofws") && DK_DOMAIN != null && DK_QMETHOD != null && DK_SELECTOR != null) {
