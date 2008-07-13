@@ -1,3 +1,5 @@
+// SHA1 and SHA256, based on:
+
 /*
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-1, as defined
  * in FIPS PUB 180-1
@@ -7,6 +9,15 @@
  * See http://pajhome.org.uk/crypt/md5 for details.
  */
 
+/**
+*
+*  Secure Hash Algorithm (SHA256)
+*  http://www.webtoolkit.info/
+*
+*  Original code by Angel Marin, Paul Johnston.
+*
+**/
+
 /*
  * Configurable variables. You may need to tweak these to be compatible with
  * the server-side, but the defaults work in most cases.
@@ -15,17 +26,7 @@ var hexcase = 0;  /* hex output format. 0 - lowercase; 1 - uppercase        */
 var b64pad  = ""; /* base-64 pad character. "=" for strict RFC compliance   */
 var chrsz   = 8;  /* bits per input character. 8 - ASCII; 16 - Unicode      */
 
-/*
- * These are the functions you'll usually want to call
- * They take string arguments and return either hex or base-64 encoded strings
- */
-function hex_sha1(s){return binb2hex(core_sha1(str2binb(s),s.length * chrsz));}
-function b64_sha1(s){return binb2b64(core_sha1(str2binb(s),s.length * chrsz));}
-function str_sha1(s){return binb2str(core_sha1(str2binb(s),s.length * chrsz));}
-function hex_hmac_sha1(key, data){ return binb2hex(core_hmac_sha1(key, data));}
-function b64_hmac_sha1(key, data){ return binb2b64(core_hmac_sha1(key, data));}
-function str_hmac_sha1(key, data){ return binb2str(core_hmac_sha1(key, data));}
-
+// State variables for incremental computation of hash
 var incremental_w;
 var incremental_a;
 var incremental_b;
@@ -34,12 +35,11 @@ var incremental_d;
 var incremental_e;
 var incremental_bits;
 var incremental_size;
+var incremental_hash;
 
-/*
- * Incrementally compute the SHA-1.
- */
- 
-function sha1_vm_incremental_test()
+//////// Test Functions ////////
+
+function sha1_incremental_test()
 {
   var a = "abcdefghijklmnopqrstuvwxyz012345ABCDEFGHIJKLMNOPQRSTUVWXYZ678901";
   var b = "109876ZYXWVUTSRQPONMLKJIHGFEDCBA543210zyxwvutsrqponmlkjihgfedcba";
@@ -49,8 +49,41 @@ function sha1_vm_incremental_test()
   sha1_incremental_block(a, false);
   sha1_incremental_block(b, false);
   sha1_incremental_block(c, true);
-  return hex_sha1(a + b + c) == sha1_incremental_end();
+  return hex_sha1(a + b + c) == sha1_incremental_end_hex();
 }
+
+function sha256_incremental_test()
+{
+  var a = "abcdefghijklmnopqrstuvwxyz012345ABCDEFGHIJKLMNOPQRSTUVWXYZ678901";
+  var b = "109876ZYXWVUTSRQPONMLKJIHGFEDCBA543210zyxwvutsrqponmlkjihgfedcba";
+  var c = "abcdefghijklmnopqrstuvwxyz";
+	
+  sha256_incremental_init();
+  sha256_incremental_block(a, false);
+  sha256_incremental_block(b, false);
+  sha256_incremental_block(c, true);
+  return hex_sha256(a + b + c) == sha256_incremental_end_hex();
+}
+
+function sha1_test()
+{
+  return hex_sha1("abc") == "a9993e364706816aba3e25717850c26c9cd0d89d";
+}
+
+//////// Wrapper Functions ////////
+
+function hex_sha1(s){return binb2hex(core_sha1(str2binb(s),s.length * chrsz));}
+function b64_sha1(s){return binb2b64(core_sha1(str2binb(s),s.length * chrsz));}
+function str_sha1(s){return binb2str(core_sha1(str2binb(s),s.length * chrsz));}
+function hex_hmac_sha1(key, data){ return binb2hex(core_hmac_sha1(key, data));}
+function b64_hmac_sha1(key, data){ return binb2b64(core_hmac_sha1(key, data));}
+function str_hmac_sha1(key, data){ return binb2str(core_hmac_sha1(key, data));}
+
+function hex_sha256(s){return binb2hex(core_sha256(str2binb(s),s.length * chrsz));}
+function b64_sha256(s){return binb2b64(core_sha256(str2binb(s),s.length * chrsz));}
+function str_sha256(s){return binb2str(core_sha256(str2binb(s),s.length * chrsz));}
+
+//////// SHA1 Functions ////////
 
 function sha1_incremental_init()
 {
@@ -118,14 +151,6 @@ function core_sha1_incremental_end() {
 }
 
 /*
- * Perform a simple self-test to see if the VM is working
- */
-function sha1_vm_test()
-{
-  return hex_sha1("abc") == "a9993e364706816aba3e25717850c26c9cd0d89d";
-}
-
-/*
  * Calculate the SHA-1 of an array of big-endian words, and a bit length
  */
 function core_sha1(x, len)
@@ -172,6 +197,131 @@ function core_sha1(x, len)
   
 }
 
+//////// SHA256 Functions ////////
+
+function sha256_incremental_init() {
+  incremental_hash = new Array(0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A, 0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19);
+  incremental_bits = 0;
+  incremental_size = 0;
+}
+
+function sha256_incremental_block(s, end) { core_sha256_incremental_block(str2binb(s),s.length * chrsz,end); }
+
+function sha256_incremental_end_hex() { return binb2hex(core_sha256_incremental_end()); }
+function sha256_incremental_end_base64() { return binb2b64(core_sha256_incremental_end()); }
+
+function core_sha256_incremental_block (m, blocklen, end) {
+  var K = new Array(0x428A2F98, 0x71374491, 0xB5C0FBCF, 0xE9B5DBA5, 0x3956C25B, 0x59F111F1, 0x923F82A4, 0xAB1C5ED5, 0xD807AA98, 0x12835B01, 0x243185BE, 0x550C7DC3, 0x72BE5D74, 0x80DEB1FE, 0x9BDC06A7, 0xC19BF174, 0xE49B69C1, 0xEFBE4786, 0xFC19DC6, 0x240CA1CC, 0x2DE92C6F, 0x4A7484AA, 0x5CB0A9DC, 0x76F988DA, 0x983E5152, 0xA831C66D, 0xB00327C8, 0xBF597FC7, 0xC6E00BF3, 0xD5A79147, 0x6CA6351, 0x14292967, 0x27B70A85, 0x2E1B2138, 0x4D2C6DFC, 0x53380D13, 0x650A7354, 0x766A0ABB, 0x81C2C92E, 0x92722C85, 0xA2BFE8A1, 0xA81A664B, 0xC24B8B70, 0xC76C51A3, 0xD192E819, 0xD6990624, 0xF40E3585, 0x106AA070, 0x19A4C116, 0x1E376C08, 0x2748774C, 0x34B0BCB5, 0x391C0CB3, 0x4ED8AA4A, 0x5B9CCA4F, 0x682E6FF3, 0x748F82EE, 0x78A5636F, 0x84C87814, 0x8CC70208, 0x90BEFFFA, 0xA4506CEB, 0xBEF9A3F7, 0xC67178F2);
+  var W = new Array(64);
+  var a, b, c, d, e, f, g, h, i, j;
+  var T1, T2;
+
+  incremental_bits += blocklen;
+  
+  if (end) {
+    /* append padding */
+    m[(incremental_bits >> 5) - incremental_size] |= 0x80 << (24 - incremental_bits % 32);
+    m[((incremental_bits + 64 >> 9) << 4) + 15 - incremental_size] = incremental_bits;
+  } else {
+	  if ((blocklen % 512) != 0)
+		  alert("SHA256 incremental block lengths must be multiples of 64 characters.");
+  }
+
+  incremental_size += m.length;
+
+  for (var i = 0; i<m.length; i+=16 ) {
+		a = incremental_hash[0];
+		b = incremental_hash[1];
+		c = incremental_hash[2];
+		d = incremental_hash[3];
+		e = incremental_hash[4];
+		f = incremental_hash[5];
+		g = incremental_hash[6];
+		h = incremental_hash[7];
+
+		for (var j = 0; j<64; j++) {
+			 if (j < 16) W[j] = m[j + i];
+			 else W[j] = safe_add(safe_add(safe_add(sha256_Gamma1256(W[j - 2]), W[j - 7]), sha256_Gamma0256(W[j - 15])), W[j - 16]);
+
+			 T1 = safe_add(safe_add(safe_add(safe_add(h, sha256_Sigma1256(e)), sha256_Ch(e, f, g)), K[j]), W[j]);
+			 T2 = safe_add(sha256_Sigma0256(a), sha256_Maj(a, b, c));
+
+			 h = g;
+			 g = f;
+			 f = e;
+			 e = safe_add(d, T1);
+			 d = c;
+			 c = b;
+			 b = a;
+			 a = safe_add(T1, T2);
+		}
+
+		incremental_hash[0] = safe_add(a, incremental_hash[0]);
+		incremental_hash[1] = safe_add(b, incremental_hash[1]);
+		incremental_hash[2] = safe_add(c, incremental_hash[2]);
+		incremental_hash[3] = safe_add(d, incremental_hash[3]);
+		incremental_hash[4] = safe_add(e, incremental_hash[4]);
+		incremental_hash[5] = safe_add(f, incremental_hash[5]);
+		incremental_hash[6] = safe_add(g, incremental_hash[6]);
+		incremental_hash[7] = safe_add(h, incremental_hash[7]);
+  }
+}
+
+function core_sha256_incremental_end() {  
+    return incremental_hash;  
+}
+
+function core_sha256 (m, l) {
+  var K = new Array(0x428A2F98, 0x71374491, 0xB5C0FBCF, 0xE9B5DBA5, 0x3956C25B, 0x59F111F1, 0x923F82A4, 0xAB1C5ED5, 0xD807AA98, 0x12835B01, 0x243185BE, 0x550C7DC3, 0x72BE5D74, 0x80DEB1FE, 0x9BDC06A7, 0xC19BF174, 0xE49B69C1, 0xEFBE4786, 0xFC19DC6, 0x240CA1CC, 0x2DE92C6F, 0x4A7484AA, 0x5CB0A9DC, 0x76F988DA, 0x983E5152, 0xA831C66D, 0xB00327C8, 0xBF597FC7, 0xC6E00BF3, 0xD5A79147, 0x6CA6351, 0x14292967, 0x27B70A85, 0x2E1B2138, 0x4D2C6DFC, 0x53380D13, 0x650A7354, 0x766A0ABB, 0x81C2C92E, 0x92722C85, 0xA2BFE8A1, 0xA81A664B, 0xC24B8B70, 0xC76C51A3, 0xD192E819, 0xD6990624, 0xF40E3585, 0x106AA070, 0x19A4C116, 0x1E376C08, 0x2748774C, 0x34B0BCB5, 0x391C0CB3, 0x4ED8AA4A, 0x5B9CCA4F, 0x682E6FF3, 0x748F82EE, 0x78A5636F, 0x84C87814, 0x8CC70208, 0x90BEFFFA, 0xA4506CEB, 0xBEF9A3F7, 0xC67178F2);
+  var HASH = new Array(0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A, 0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19);
+  var W = new Array(64);
+  var a, b, c, d, e, f, g, h, i, j;
+  var T1, T2;
+
+  m[l >> 5] |= 0x80 << (24 - l % 32);
+  m[((l + 64 >> 9) << 4) + 15] = l;
+
+  for (var i = 0; i<m.length; i+=16 ) {
+		a = HASH[0];
+		b = HASH[1];
+		c = HASH[2];
+		d = HASH[3];
+		e = HASH[4];
+		f = HASH[5];
+		g = HASH[6];
+		h = HASH[7];
+
+		for (var j = 0; j<64; j++) {
+			 if (j < 16) W[j] = m[j + i];
+			 else W[j] = safe_add(safe_add(safe_add(sha256_Gamma1256(W[j - 2]), W[j - 7]), sha256_Gamma0256(W[j - 15])), W[j - 16]);
+
+			 T1 = safe_add(safe_add(safe_add(safe_add(h, sha256_Sigma1256(e)), sha256_Ch(e, f, g)), K[j]), W[j]);
+			 T2 = safe_add(sha256_Sigma0256(a), sha256_Maj(a, b, c));
+
+			 h = g;
+			 g = f;
+			 f = e;
+			 e = safe_add(d, T1);
+			 d = c;
+			 c = b;
+			 b = a;
+			 a = safe_add(T1, T2);
+		}
+
+		HASH[0] = safe_add(a, HASH[0]);
+		HASH[1] = safe_add(b, HASH[1]);
+		HASH[2] = safe_add(c, HASH[2]);
+		HASH[3] = safe_add(d, HASH[3]);
+		HASH[4] = safe_add(e, HASH[4]);
+		HASH[5] = safe_add(f, HASH[5]);
+		HASH[6] = safe_add(g, HASH[6]);
+		HASH[7] = safe_add(h, HASH[7]);
+  }
+  return HASH;
+}
+
+//////// Helper Functions ////////
+
 /*
  * Perform the appropriate triplet combination function for the current
  * iteration
@@ -192,6 +342,15 @@ function sha1_kt(t)
   return (t < 20) ?  1518500249 : (t < 40) ?  1859775393 :
          (t < 60) ? -1894007588 : -899497514;
 }  
+
+function sha256_S (X, n) { return ( X >>> n ) | (X << (32 - n)); }
+function sha256_R (X, n) { return ( X >>> n ); }
+function sha256_Ch(x, y, z) { return ((x & y) ^ ((~x) & z)); }
+function sha256_Maj(x, y, z) { return ((x & y) ^ (x & z) ^ (y & z)); }
+function sha256_Sigma0256(x) { return (sha256_S(x, 2) ^ sha256_S(x, 13) ^ sha256_S(x, 22)); }
+function sha256_Sigma1256(x) { return (sha256_S(x, 6) ^ sha256_S(x, 11) ^ sha256_S(x, 25)); }
+function sha256_Gamma0256(x) { return (sha256_S(x, 7) ^ sha256_S(x, 18) ^ sha256_R(x, 3)); }
+function sha256_Gamma1256(x) { return (sha256_S(x, 17) ^ sha256_S(x, 19) ^ sha256_R(x, 10)); }
 
 /*
  * Calculate the HMAC-SHA1 of a key and some data
@@ -230,6 +389,9 @@ function rol(num, cnt)
 {
   return (num << cnt) | (num >>> (32 - cnt));
 }
+
+//////// String/Binary Functions ////////
+
 
 /*
  * Convert an 8-bit or 16-bit string to an array of big-endian words
