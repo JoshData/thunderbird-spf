@@ -8,7 +8,6 @@ JARSOURCES=\
 
 XPISOURCES=\
 	install.rdf \
-	install.js \
 	chrome.manifest \
 	chrome/sve.jar
 	
@@ -28,7 +27,6 @@ package: sve.xpi
 		thunderbird-spf/chrome \
 		thunderbird-spf/content \
 		thunderbird-spf/locale \
-		thunderbird-spf/install.js \
 		thunderbird-spf/install.rdf \
 		thunderbird-spf/chrome.manifest \
 		thunderbird-spf/Makefile \
