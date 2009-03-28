@@ -271,6 +271,9 @@ function spfGo(manual) {
 		
 		onStartRequest: function(request, context) {},
 		onStopRequest: function(request, context, status) { },
+		writeFrom: function(fromStream, count) {
+			this.onDataAvailable(null, null, fromStream, 0, count);
+		},
 		onDataAvailable: function(request, context, inputStream, offset, count) {
 			if (this.stream == null) {
 				this.stream = Components.classes["@mozilla.org/binaryinputstream;1"]
@@ -415,8 +418,8 @@ function spfGo(manual) {
 		}
     };
 
-	var async_consumer = Components.classes["@mozilla.org/network/async-stream-listener;1"].createInstance();
-	var async_consumer2 = async_consumer.QueryInterface(Components.interfaces.nsIAsyncStreamListener);
+	var async_consumer = Components.classes["@mozilla.org/network/simple-stream-listener;1"].createInstance();
+	var async_consumer2 = async_consumer.QueryInterface(Components.interfaces.nsISimpleStreamListener);
 
 	async_consumer2.init(dataListener, null);
 
@@ -1183,6 +1186,15 @@ function SVE_DisplayResult(msgInfo) {
 }
 
 function SVE_AddressBookAddressStatus(address) {
+	if (Components.interfaces.nsIAddressBook != null)
+		return SVE_AddressBookAddressStatus_2(address);
+	else if (Components.interfaces.nsIAbManager != null)
+		return SVE_AddressBookAddressStatus_3(address);
+	else
+		return null;
+}
+
+function SVE_AddressBookAddressStatus_2(address) {
 	var ret = new Object();
 	var addressbook = Components.classes["@mozilla.org/addressbook;1"].createInstance(Components.interfaces.nsIAddressBook);
 	var abDatabase = addressbook.getAbDatabaseFromURI("moz-abmdbdirectory://abook.mab");
@@ -1203,6 +1215,34 @@ function SVE_AddressBookAddressStatus(address) {
 	  } while( Components.lastResult == 0 );
 	} catch(e) {}
 	abDatabase.close(false);
+	return ret;
+}
+
+function SVE_AddressBookAddressStatus_3(address) {
+	var abmanager = Components.classes["@mozilla.org/abmanager;1"].createInstance(Components.interfaces.nsIAbManager);
+	
+	var directory = abmanager.getDirectory("moz-abmdbdirectory://abook.mab");
+		
+	/*var enumerator = abmanager.directories;
+	while (enumerator.hasMoreElements()) {
+	 var directory = enumerator.getNext().QueryInterface(Components.interfaces.nsIAbDirectory);
+	}*/
+	
+	var enumerator = directory.childCards;
+	var ret = new Object();
+	while (enumerator.hasMoreElements()) {
+		 var card = enumerator.getNext().QueryInterface(Components.interfaces.nsIAbCard);
+		 
+		 var addys = [card.primaryEmail, card.defaultEmail, card.secondEmail];
+		 for (var i = 0; i < addys.length; i++) {
+			 if (addys[i] == undefined) continue;
+			 if (addys[i].toLowerCase() == address.toLowerCase())
+				 ret.addressKnown = true;
+			 if (endsWith(addys[i].toLowerCase(), "@" + SVE_GetDomain(address).toLowerCase()))
+				 ret.domainKnown = true;
+		 }
+	}
+	
 	return ret;
 }
 
