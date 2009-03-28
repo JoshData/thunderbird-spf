@@ -17,20 +17,20 @@
 	var prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
 
 	function setFields() {
-	    var spf_queryserver = document.getElementById("spf_queryserver");
+	    /*var spf_queryserver = document.getElementById("spf_queryserver");
 		if (prefs.getPrefType("spf.queryserver") == prefs.PREF_STRING) {
 			spf_queryserver.value = prefs.getCharPref("spf.queryserver");
-		}
+		}*/
 		
 	    var spf_checkonload = document.getElementById("spf_checkonload");
 		spf_checkonload.checked = true;
 		if (isPref("spf.checkonload", "no"))
 			spf_checkonload.checked = false;
 		
-	    var spf_usedk = document.getElementById("spf_usedk");
+	    /*var spf_usedk = document.getElementById("spf_usedk");
 		spf_usedk.checked = true;
 		if (!isPref("spf.domainkeys", "yes"))
-			spf_usedk.checked = false;
+			spf_usedk.checked = false;*/
 			
 		var spf_warnunverified = document.getElementById("spf_warnunverified");
 		spf_warnunverified.checked = false;
@@ -94,14 +94,14 @@
 	}
 	
 	function doAccept() {
-	    var spf_queryserver = document.getElementById("spf_queryserver");
-		prefs.setCharPref("spf.queryserver", spf_queryserver.value);
+	    /*var spf_queryserver = document.getElementById("spf_queryserver");
+		prefs.setCharPref("spf.queryserver", spf_queryserver.value);*/
 		
 	    var spf_checkonload = document.getElementById("spf_checkonload");
 		prefs.setCharPref("spf.checkonload", spf_checkonload.checked ? "yes" : "no");
 
-	    var spf_usedk = document.getElementById("spf_usedk");
-		prefs.setCharPref("spf.domainkeys", spf_usedk.checked ? "yes" : "no");
+	    /*var spf_usedk = document.getElementById("spf_usedk");
+		prefs.setCharPref("spf.domainkeys", spf_usedk.checked ? "yes" : "no");*/
 		
 		var spf_warnunverified = document.getElementById("spf_warnunverified");
 		prefs.setCharPref("spf.warnunverified", spf_warnunverified.checked ? "yes" : "no");
@@ -189,8 +189,8 @@
 			  <vbox>
 			  <checkbox label="&options.checkeveryemail;" id="spf_checkonload"/>
 			  <checkbox label="&options.checkrbls;" id="spf_checkrbls"/>
-			  <checkbox label="&options.usedk;" id="spf_usedk"/>
-			  <description style="margin-left: 2em">&options.usedk.info;</description>
+			  <!--<checkbox label="&options.usedk;" id="spf_usedk"/>
+			  <description style="margin-left: 2em">&options.usedk.info;</description>-->
 			  <checkbox label="&options.popups;" id="spf_warnunverified"/>
 			  <checkbox label="&options.checkab;" id="spf_checkab"/>
 			  <checkbox label="&options.usestatusbar;" id="spf_onlystatusbar"/>
@@ -234,11 +234,11 @@
 
 			  	<separator class="groove-thin" style="margin: 1em 0em 1em 0em"/>
 
-				<label value="&options.verificationserver;" class="header"/>
+				<!--<label value="&options.verificationserver;" class="header"/>
 				<textbox id="spf_queryserver" style="width: 10em"/>
 				<description style="width: 30em">&options.verificationserverinfo;</description>
 				
-			  	<separator class="groove-thin" style="margin: 1em 0em 1em 0em"/>
+			  	<separator class="groove-thin" style="margin: 1em 0em 1em 0em"/>-->
 
 				<label value="&options.nocheckdomains;" class="header"/>
 				<textbox id="spf_nocheckdomains" style="width: 10em"/>
