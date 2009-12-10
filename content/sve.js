@@ -163,10 +163,15 @@ function sveRearrangeBoxes() {
 	newContainer.insertBefore(spfBox, widget);
 }
 
+function sveGetCurrentMessageUri() {
+	if (gFolderDisplay.selectedCount == 0) return null;
+	return gFolderDisplay.selectedMessageUris[0];
+}
+
 function spfGo(manual) {
 	// Prevent two load events on the same email.
-	var uri = GetFirstSelectedMessage();
-	if (uri == lastCheckedEmail && !manual) return;
+	var uri = sveGetCurrentMessageUri();
+	if (!uri || (uri == lastCheckedEmail && !manual)) return;
 	lastCheckedEmail = uri;
 
 	spfLoadSettings();
@@ -413,7 +418,7 @@ function spfGo(manual) {
 				*/
 				
 				SVE_StartCheck(msgInfo);
-				throw "IGNORE_THIS__NOT_A_REAL_PROBLEM"; // abort reading the message since we don't need any more of it
+				inputStream.close();
 			}
 		}
     };
@@ -737,7 +742,7 @@ function SVE_TryDK(msgInfo) {
 				}
 			}
 			
-			var uri = GetFirstSelectedMessage();
+			var uri = sveGetCurrentMessageUri();
 			var msgService = messenger.messageServiceFromURI(uri);
 			
 			var async_consumer = Components.classes["@mozilla.org/network/async-stream-listener;1"].createInstance();
@@ -1433,7 +1438,7 @@ function SVE_QuerySPF(ip, from, envfrom, msgInfo, func) {
 	// user moves on to another message while we're waiting
 	// for some asynchronous operation to finish, discard
 	// the result when the operation finishes.
-	var curMessage = GetFirstSelectedMessage();
+	var curMessage = sveGetCurrentMessageUri();
 	var gotInfo = new Object();	
 	
 	// If no SPF result is available in 5 seconds, this is
@@ -1454,7 +1459,7 @@ function SVE_QuerySPF(ip, from, envfrom, msgInfo, func) {
 	SPF(ip, SVE_GetDomain(from),
 		function(result) {
 			gotInfo.got = true;
-			if (curMessage != GetFirstSelectedMessage())
+			if (curMessage != sveGetCurrentMessageUri())
 				return;
 			
 			if (result.status == "+" || envfrom == null)
@@ -1462,7 +1467,7 @@ function SVE_QuerySPF(ip, from, envfrom, msgInfo, func) {
 			else
 				SPF(ip, SVE_GetDomain(envfrom),
 					function(result2) {
-						if (curMessage != GetFirstSelectedMessage())
+						if (curMessage != sveGetCurrentMessageUri())
 							return;
 						
 						if (result2.status == "+")
@@ -1556,7 +1561,7 @@ function SPFSendDKQuery(helo, ip, email_from, email_envelope, dkheader, dkhash, 
 	
 	// Query the server.
 
-	var curMessage = GetFirstSelectedMessage();
+	var curMessage = sveGetCurrentMessageUri();
 	
 	statusText.childNodes[0].nodeValue = SVE_STRINGS.DK_CONTACTING_SERVER;
 	
@@ -1568,7 +1573,7 @@ function SPFSendDKQuery(helo, ip, email_from, email_envelope, dkheader, dkhash, 
 		statusLittleBox.label = SVE_STRINGS.ERROR;
 	};
 	xmlhttp.onload = function() {
-		if (GetFirstSelectedMessage() != curMessage) return;
+		if (sveGetCurrentMessageUri() != curMessage) return;
 		SPFSendQuery2(msgInfo, func, queryObj);
 	};
 	xmlhttp.send(null);
