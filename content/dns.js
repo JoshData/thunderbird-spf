@@ -8,16 +8,32 @@
  *
  * A major limitation of this library is that Mozilla
  * only provides TCP sockets, and DNS servers sometimes
- * only respond on UDP.  To get around this, you can set
- * the profile option "dns.nameserver" to the hostname or
- * IP of your own ISP's nameserver that your computer
- * normally uses, which should respond on TCP.
- * If no dns.nameserver option is given, the Windows registry and
- * the file /etc/resolv.conf (on Linux) will be scanned
- * for a DNS server to use.
+ * only respond on UDP. Especially public DNS servers
+ * that have the authoritative information for their
+ * domain. In that case, we really need a "local" server
+ * that responds to TCP.
+ *
+ * We have a few options.  First, we could try the public
+ * DNS system starting at one of the root servers of the
+ * world and hope the name servers on the path to the final
+ * answer all respond to TCP. For that, the root name server
+ * could be, e.g., J.ROOT-SERVERS.NET.
+ *
+ * Or we can just go with Google's new public DNS service
+ * at 8.8.8.8 or 8.8.4.4 which responds on TCP. Good solution!
+ *
+ * The next option is to ask the user for a local name server
+ * that responds to TCP. Some routers cause trouble for this.
+ * It would be nice to have a local server so that it caches
+ * nicely. The user can override the otherwise default root
+ * server by setting the dns.nameserver option.
+ *
+ * We can also try to auto-detect the user's local name server.
+ * The Windows registry and the file /etc/resolv.conf (on Linux)
+ * can be scanned for a DNS server to use.
  */
 
-var DNS_ROOT_NAME_SERVER = "J.ROOT-SERVERS.NET";
+var DNS_ROOT_NAME_SERVER = "8.8.8.8"; // This is Google Public DNS. Could be "J.ROOT-SERVERS.NET", but public DNS may not respond to TCP. 
 var DNS_FOUND_NAME_SERVER_AUTOMATICALLY = 0;
 
 // Any settings changes aren't going to be picked up later.
@@ -27,11 +43,14 @@ function DNS_LoadPrefs() {
 	var prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
 
 	if (prefs.getPrefType("dns.nameserver") == prefs.PREF_STRING
-		&& prefs.getCharPref("dns.nameserver") != null && prefs.getCharPref("dns.nameserver") != "") {
+		&& prefs.getCharPref("dns.nameserver") != null && prefs.getCharPref("dns.nameserver") != "" && prefs.getCharPref("dns.nameserver") != "occams.info:9053") {
 		DNS_ROOT_NAME_SERVER = prefs.getCharPref("dns.nameserver");
 		//DNS_Log("DNS: Got server from user preference: " + DNS_ROOT_NAME_SERVER);
-	} else {
+	} else if (false) {
 		// Try getting a nameserver from /etc/resolv.conf.
+		
+		// No need to do this while Google Public DNS is running.
+		
 		try {
 			var resolvconf = Components.classes["@mozilla.org/file/local;1"].createInstance(Components.interfaces.nsILocalFile);
 			resolvconf.initWithPath("/etc/resolv.conf");
@@ -364,6 +383,7 @@ function DNS_getRDData(str, server, host, recordtype, callback, callbackdata, ho
 	var i;
 	var j;
 	var dom;
+	var type;
 	var cls;
 	var ttl;
 	var rec;
@@ -404,7 +424,7 @@ function DNS_getRDData(str, server, host, recordtype, callback, callbackdata, ho
 			DNS_Debug(debugstr + "Additional: " + rec.dom + " " + rec.type + " " + rec.rddata);
 		if (rec.type == "A") {
 			for (j = 0; j < results.length; j++) {
-				if (results[j].host == rec.dom) {
+				if (results[j].host && results[j].host == rec.dom) {
 					if (results[j].address == null) results[j].address = Array(0);
 					results[j].address[results[j].address.length] = rec.rddata;
 				}
