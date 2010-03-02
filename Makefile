@@ -39,4 +39,4 @@ cheapupdate: chrome/sve.jar
 	cp chrome/sve.jar ~/.mozilla-thunderbird/default/*/extensions/\{ff7e40e0-08b4-11d9-9669-0800200c9a66\}/chrome/sve.jar
 
 deploy: package
-	scp sve.xpi archive/thunderbird-sve.tgz publius:www/code/spf
+	scp sve.xpi archive/thunderbird-sve.tgz occams:www/code/spf

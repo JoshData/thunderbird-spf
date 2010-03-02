@@ -1353,7 +1353,7 @@ function SVE_CheckDNSWL(msgInfo) {
 				// IP address for status.
 				
 				addr = addr[0];
-				ip = addr.split('.');
+				var ip = addr.split('.');
 				
 				switch (parseInt(ip[2])) {
 				case 2: msgInfo.dnswl_cat = "Financial"; break;
