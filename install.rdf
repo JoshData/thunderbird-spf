@@ -8,7 +8,7 @@
 		<em:name>Sender Verification Extension</em:name>
 		<em:description>Protects you from phishing.</em:description>
 
-		<em:version>0.9.0.5</em:version>
+		<em:version>0.9.0.6</em:version>
 
 		<em:creator>Joshua Tauberer (http://razor.occams.info)</em:creator>
 		<em:homepageURL>http://razor.occams.info/code/spf</em:homepageURL>
@@ -25,8 +25,8 @@
 			<Description>
 				<!-- Thunderbird -->
 				<em:id>{3550f703-e582-4d05-9a08-453d09bdfdc6}</em:id>
-				<em:minVersion>0.6</em:minVersion>
-				<em:maxVersion>3.0.0.*</em:maxVersion>
+				<em:minVersion>3.0.0.0</em:minVersion>
+				<em:maxVersion>3.*.*.*</em:maxVersion>
 			</Description>
 		</em:targetApplication>
 	
