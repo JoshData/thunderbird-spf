@@ -409,7 +409,7 @@ function spfGo(manual) {
 							msgInfo.QueryReturn.result = storedstatus[3];
 							msgInfo.QueryReturn.comment = storedstatus[4];
 							msgInfo.QueryReturn.IsFromStorage = true;
-							SVE_OnQueriesComplete(msgInfo);
+							SVE_OnAsyncQueryComplete(msgInfo);
 							return;
 						}
 					}
@@ -631,7 +631,7 @@ function SVE_TryDK(msgInfo) {
 					
 					msgInfo.DKHash = sha1_incremental_end_base64();
 					
-					SPFSendDKQuery(msgInfo.HeloName, msgInfo.IPAddr, msgInfo.FromHdr, msgInfo.EnvFrom != null && msgInfo.EnvFrom != msgInfo.FromHdr ? msgInfo.EnvFrom : null, msgInfo.DKHeader, msgInfo.DKHash, msgInfo, SVE_OnQueriesComplete);
+					SPFSendDKQuery(msgInfo.HeloName, msgInfo.IPAddr, msgInfo.FromHdr, msgInfo.EnvFrom != null && msgInfo.EnvFrom != msgInfo.FromHdr ? msgInfo.EnvFrom : null, msgInfo.DKHeader, msgInfo.DKHash, msgInfo, SVE_OnAsyncQueryComplete);
 				},
 				
 				onDataAvailable: function(request, context, inputStream, offset, count) {
@@ -834,7 +834,7 @@ function SVE_OnQuerySPFComplete(msgInfo) {
 			msgInfo.QueryReturn2 = msgInfo.QueryReturn;
 			SVE_QuerySPF(msgInfo.IPAddr2, msgInfo.FromHdr, null, msgInfo, function(msgInfo) {
 				msgInfo.QueryReturn.trustedForwarder = msgInfo.QueryReturn2.domain;
-				SVE_OnQueriesComplete(msgInfo);
+				SVE_OnAsyncQueryComplete(msgInfo);
 				} );
 			return;
 		} else {
@@ -842,7 +842,7 @@ function SVE_OnQuerySPFComplete(msgInfo) {
 		}
 	}
 	
-	SVE_OnQueriesComplete(msgInfo);
+	SVE_OnAsyncQueryComplete(msgInfo);
 }
 
 function SVE_CheckNetcraft(msgInfo) {
@@ -977,11 +977,18 @@ function SVE_Check_OpenPhishingDatabase(msgInfo) {
 	xmlhttp2.send(null);
 }
 
-function SVE_OnQueriesComplete(msgInfo) {
+function SVE_OnAsyncQueryComplete(msgInfo) {
+	// Do we have enough information to check the result?
+	msgInfo.asyncCounter--;
+	if (msgInfo.asyncCounter > 0) return;
+	
 	SVE_DisplayResult(msgInfo);
 }
 
 function SVE_DisplayResult(msgInfo) {
+	if (msgInfo.PhishingReturn != null)
+		msgInfo.QueryReturn = msgInfo.PhishingReturn;
+	
 	// Store the result of the check into the message properties for later recall.
 	if (!msgInfo.QueryReturn.IsFromStorage) {
 		/*try {
@@ -1252,10 +1259,6 @@ function SVE_AddressBookAddressStatus_3(address) {
 }
 
 function SVE_BeginCheck(msgInfo) {
-	SVE_CheckLocalMail(msgInfo);
-}
-
-function SVE_CheckLocalMail(msgInfo) {
 	// When the user's incoming MTA is the SMTP server that originally accepted the message,
 	// then the MTA does not insert a Received: line for itself and the first line indicates the
 	// IP address of the sender's own personal computer. As a result, we don't get a line that
@@ -1272,83 +1275,78 @@ function SVE_CheckLocalMail(msgInfo) {
 	// message appropriately for a special warning later.
 	
 	if (DNS_IsDottedQuad(msgInfo.HeaderObj.folder.server.realHostName))
-		SVE_CheckLocalMail2(msgInfo.HeaderObj.folder.server.realHostName, msgInfo);
+		SVE_CheckLocalMail(msgInfo.HeaderObj.folder.server.realHostName, msgInfo);
 	else
 		queryDNS(msgInfo.HeaderObj.folder.server.realHostName, "A",
 			function(dnsresult) {
 				if (dnsresult != null)
-					SVE_CheckLocalMail2(dnsresult[0], msgInfo);
+					SVE_CheckLocalMail(dnsresult[0], msgInfo);
 				else
-					SVE_CheckRBLs(msgInfo);
+					SVE_CheckNonLocalMail(msgInfo);
 			}
 			, null);
 }
 
-function SVE_CheckLocalMail2(ipaddr, msgInfo) {
+function SVE_CheckLocalMail(ipaddr, msgInfo) {
 	SPF(ipaddr, SVE_GetDomain(msgInfo.FromHdr),
 			function(spfresult) {
 				if (spfresult.status == "+") {
 					msgInfo.LocalSender = true;
 					SVE_CheckSPF(msgInfo); // can skip RBL check if it's own own domain
 				} else {
-					SVE_CheckRBLs(msgInfo);
+					SVE_CheckNonLocalMail(msgInfo);
 				}
 			}
 		);
 }
 
-function SVE_CheckRBLs(msgInfo) {
-	if (!checkrbls) {
-		SVE_CheckSPF(msgInfo);
-		return;
-	}
-		
-	statusText.childNodes[0].nodeValue = SVE_STRINGS.CHECKING_RBLS1;
-	statusLittleBox.label = SVE_STRINGS.CHECKING_RBLS2;
+function SVE_CheckNonLocalMail(msgInfo) {
+	SVE_CheckSPF(msgInfo);
 	
-	SVE_CheckDNSWL(msgInfo);
+	if (checkrbls) {
+		SVE_CheckSURBL(msgInfo);
+		SVE_CheckSpamhaus(msgInfo);
+		SVE_CheckDNSWL(msgInfo);
+		SVE_CheckSenderScoreCertified(msgInfo);
+		SVE_AnonWhois(msgInfo);
+	}
 }
 
 function SVE_CheckSURBL(msgInfo) {
 	// Check the SURBL phishing list, which includes (as of 10-2006)
 	// MailPolice and PhishTank.
+	msgInfo.asyncCounter++;
 	queryDNS(
 		SVE_GetDomain(msgInfo.FromHdr) + ".multi.surbl.org",
 		"A",
 		function(addr) {
-			if (addr == null) {
-				SVE_CheckSpamhaus(msgInfo);
-			} else {
+			if (addr != null)
 				SVE_SetStatusFromRBL("SURBL", msgInfo);
-				SVE_OnQueriesComplete(msgInfo);
-			}
+			SVE_OnAsyncQueryComplete(msgInfo);
 		});
 }
 
 function SVE_CheckSpamhaus(msgInfo) {
 	// Check Spamhaus's SBL+XBL blacklist.
+	msgInfo.asyncCounter++;
 	queryDNS(
 		msgInfo.IPAddr.split('.').reverse().join('.') + ".sbl-xbl.spamhaus.org",
 		"A",
 		function(addr) {
-			if (addr == null) {
-				SVE_CheckSPF(msgInfo);
-			} else {
+			if (addr != null)
 				SVE_SetStatusFromRBL("Spamhaus", msgInfo);
-				SVE_OnQueriesComplete(msgInfo);
-			}
+			SVE_OnAsyncQueryComplete(msgInfo);
 		});
 }
 
 function SVE_CheckDNSWL(msgInfo) {
 	// Check www.dnswl.org whitelist.
+	msgInfo.asyncCounter++;
 	queryDNS(
 		msgInfo.IPAddr.split('.').reverse().join('.') + ".list.dnswl.org",
 		"A",
 		function(addr) {
-			if (addr == null) {
-				SVE_CheckSenderScoreCertified(msgInfo);
-			} else {
+			if (addr != null) {
 				// It is white-listed, but parse the returned
 				// IP address for status.
 				
@@ -1358,15 +1356,7 @@ function SVE_CheckDNSWL(msgInfo) {
 				switch (parseInt(ip[2])) {
 				case 2: msgInfo.dnswl_cat = "Financial"; break;
 				case 3: msgInfo.dnswl_cat = "Newsletter"; break;
-				case 5:
-					// This category is for ISPs. But on principle,
-					// I don't want to label mail from ISPs as
-					// reputable. So we skip WL labeling and go to SPF.
-					SVE_CheckSPF(msgInfo);
-					return;
-					
-					msgInfo.dnswl_cat = "ISP";
-					break;
+				case 5: break; // ISPs, but ISPs are not necessarily trustworthy
 				case 7: msgInfo.dnswl_cat = "Travel"; break;
 				case 8: msgInfo.dnswl_cat = "Govt/Public"; break;
 				case 9: msgInfo.dnswl_cat = "Media/Tech"; break;
@@ -1386,40 +1376,56 @@ function SVE_CheckDNSWL(msgInfo) {
 				}
 				
 				// Skip other white/blacklists and go on to SPF.
-				SVE_CheckSPF(msgInfo);
 			}
+			SVE_OnAsyncQueryComplete(msgInfo);
 		});
 }
 
 function SVE_CheckSenderScoreCertified(msgInfo) {
 	// Check www.bondedsender.org Sender Score Certified whitelist.
+	msgInfo.asyncCounter++;
 	queryDNS(
 		msgInfo.IPAddr.split('.').reverse().join('.') + ".query.bondedsender.org",
 		"A",
 		function(addr) {
-			if (addr == null || addr != "127.0.0.10") {
-				// Not white-listed, so check the blacklists and then do SPF.
-				SVE_CheckSURBL(msgInfo);
-			} else {
+			if (addr != null && addr == "127.0.0.10") {
 				// It is white-listed.
 
 				msgInfo.wl_trust = SVE_STRINGS.REPUTABLE_SENDER;
 				msgInfo.wl_trust_mech = "Sender Score Certified (bondedsender.org)";
-				
-				SVE_CheckSPF(msgInfo);
+			}				
+			SVE_OnAsyncQueryComplete(msgInfo);
+		});
+}
+
+function SVE_AnonWhois(msgInfo) {
+	// Check the AnonWhois.org list.
+	msgInfo.asyncCounter++;
+	queryDNS(
+		SVE_GetDomain(msgInfo.FromHdr) + ".anonwhois.org",
+		"A",
+		function(addr) {
+			if (addr != null) {
+				msgInfo.PhishingReturn = new Object();
+				msgInfo.PhishingReturn.result = "phishing";
+				msgInfo.PhishingReturn.comment = "This domain has a private registration which is suspect for legitimate institutions.";
+				msgInfo.PhishingReturn.method = "rbl";
+				msgInfo.PhishingReturn.couldTryDK = 0;
 			}
+			SVE_OnAsyncQueryComplete(msgInfo);
 		});
 }
 
 function SVE_SetStatusFromRBL(rbl, msgInfo) {
-	msgInfo.QueryReturn = new Object();
-	msgInfo.QueryReturn.result = "phishing";
-	msgInfo.QueryReturn.comment = SVE_STRINGS.BLACKLISTED(rbl);
-	msgInfo.QueryReturn.method = "rbl";
-	msgInfo.QueryReturn.couldTryDK = 0;
+	msgInfo.PhishingReturn = new Object();
+	msgInfo.PhishingReturn.result = "phishing";
+	msgInfo.PhishingReturn.comment = SVE_STRINGS.BLACKLISTED(rbl);
+	msgInfo.PhishingReturn.method = "rbl";
+	msgInfo.PhishingReturn.couldTryDK = 0;
 }
 
 function SVE_CheckSPF(msgInfo) {
+	msgInfo.asyncCounter++;
 	SVE_QuerySPF(msgInfo.IPAddr, msgInfo.FromHdr, msgInfo.EnvFrom, msgInfo, function(msgInfo) { SVE_OnQuerySPFComplete(msgInfo) } );
 }
 
