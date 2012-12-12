@@ -1,0 +1,338 @@
+<?xml version="1.0"?>
+<html>
+  <head>
+    <title>Thunderbird Sender Verification Extension</title>
+    <style>
+			body, td {
+				font-family: Liberation Serif, Times New Roman, serif;
+				font-size: 15px;
+			}
+			
+			.main {
+				border: 1px solid black;
+				text-align: left;
+			}
+			
+			.header {
+				background-color: #111;
+				color: #fff;
+				font-weight: bold;
+				font-size: 180%;
+				padding: .75em;
+				padding-left: 12pt;
+				text-align: center;
+			}
+			.header a {
+				color: #FF0;
+				text-decoration: none;
+			}
+			.header a:hover {
+				text-decoration: underline;
+			}
+			
+			.body {
+				padding: 1em;
+			}
+			
+			.menu {
+				padding: 1em 0em;
+				text-align: center;
+				font-size: 11pt;
+			}
+			.menu a {
+				text-decoration: none;
+			}
+			
+			.section {
+				margin: 2em 0em 1em 0em;
+				padding: 3px;
+				text-align: center;
+				font-weight: bold;
+				color: #55a;
+				font-size: 125%;
+				border-bottom: thin solid #000000;
+			}
+			
+			div.head { font-weight: bold; margin-top: .5em }
+			div.item { padding: .5em }
+			
+			a { color: #444; font-weight: bold; }
+			a:hover { color: #88C }
+			a:visited {  }
+
+			xa.internal { text-decoration: underline; color: #05a; font-weight: bold }
+			xa.internal:hover { text-decoration: underline }
+			xa.internal:visited {  }
+
+			pre.code { border: 1px solid #CCCCCC; padding: 3px}
+
+			h3 { font-size: 120%; }
+			p { line-height: 140%; }
+			dt, dt a { margin-top: .5em; margin-bottom: .5em; font-weight: bold; }
+			
+			li { margin-top: .3em; margin-bottom: .3em }
+			
+			.widecolumn .entry p {
+				font-size: 15px;
+				line-height: 150%;
+			}
+			</style>
+  </head>
+  <body bgcolor="white" style="margin: 0px">
+    <table border="0" cellspacing="0" cellpadding="0" align="center" width="800" style="margin-bottom: 1em">
+      <tr valign="top">
+        <td class="main">
+          <div class="header">
+            <Header>
+              <div>Thunderbird Sender Verification Extension</div>
+              <div style="font-size: 80%">By <a href="/">Joshua Tauberer</a></div>
+            </Header>
+          </div>
+          <div class="body">
+            <Body>
+              <P STYLE="font-weight: bold; font-style: italic">
+Protect Yourself From Phishing
+</P>
+              <p>This is an extension for the <a href="http://www.mozilla.org/products/thunderbird/">Mozilla Thunderbird</a>
+email program that reports, when possible, whether the sender shown in the From: header
+was actually the sender of the email.  In fact, forging the From: header
+is possible!  This is an anti-<a href="http://en.wikipedia.org/wiki/Phishing">phishing</a> tool
+to protect you from fradulent emails asking for your sensitive information, and zombie-spread
+viruses claiming to be from someone they are not.  The extension uses
+<a href="http://spf.pobox.com">Sender Policy Framework (SPF)</a> (in
+a nonstandard way) to verify the sender's domain, and
+<a href="http://www.surbl.org/">SURBL</a>,
+<a href="http://www.spamhaus.org/">Spamhaus</a>,
+<a href="http://www.dnswl.org/">DNSWL</a>, and
+<a href="http://www.senderscorecertified.org/">Sender Score Certified</a>
+for reputation information.</p>
+              <p><b>What it does and doesn't do: </b>
+The extension checks the domain name
+(e.g. aol.com) in the From: header, but not the user name
+part (e.g. the "my.name" part in my.name@aol.com).  And since many
+domains don't support SPF, emails claimed to be from these
+domains can't be verified with the methods used by the extension.
+<i>These new email protocols aren't perfect, and neither is the extension, so
+positive verification results should be interpreted with common sense.</i></p>
+              <h4>Latest Version</h4>
+              <p>The current version of the extension is 0.9.0.6, posted July 4, 2010.
+In this version, all of the verification checks are performed in parallel.
+This version will install in all versions of Thunderbird 3 and will not
+install in earlier versions.
+
+I am no longer actively developing this extension but I try to keep it 
+going as time permits.
+
+To Download: Right-click this link ---&gt; <a href="sve.xpi">download</a> &lt;--- and choose "Save Target As" or "Save As" to save the file
+to your computer. Then in Thunderbird, go to Tools &gt; Add-ons &gt; Install... and install the file you downloaded.</p>
+              <p>Previously you could also get the extension from 
+<a href="https://addons.mozilla.org/extensions/moreinfo.php?application=thunderbird&amp;category=Privacy%20and%20Security&amp;numpg=10&amp;id=345">Mozilla
+Add-ons</a>, but for reasons that are not important <b>I will not be posting
+updates there anymore</b>. It has the lastest version compatible with Thunderbird 2.</p>
+              <h4>Screen Shots</h4>
+              <center style="margin: 2em">
+                <div style="margin-bottom: 1em">
+                  <img src="screenshot.png" border="1" width="500"/>
+                </div>
+                <div>
+                  <img src="screenshot2.png" border="1" width="500"/>
+                </div>
+                <div style="width: 460px; font-style: italic; margin-top: .5em; font-size: 95%">
+		"Sender Verification" lines show the results of verification checks performed by the extension.
+	</div>
+              </center>
+              <table cols="2" cellpadding="5">
+                <tr valign="top">
+                  <td width="50%">
+                    <h4>Mail List</h4>
+                    <p>This <a href="http://groups.yahoo.com/group/thunderbird-spf/">open but moderated Yahoo! mail list</a> for the extension
+is a good place to post suggestions and bugs. Or contact <a href="/">me</a> directly.</p>
+                  </td>
+                  <td width="50%">
+                    <h4>Source Code</h4>
+                    <P>Here's the source code: <a href="thunderbird-sve.tgz">extension .tgz</a>,
+<a href="http://razor.occams.info/code/repo/?/thunderbird-spf/">browse code</a>,
+or anon SVN at <tt>svn://razor.occams.info/thunderbird-spf</tt>.</P>
+                  </td>
+                </tr>
+              </table>
+              <hr/>
+              <h3>Using the Extension</h3>
+              <p>The extension sits at the top of every email message and reports the
+verification status of the sender. Here are some of the messages you will
+see:</p>
+              <dl>
+                <dt>Domain &lt;example.com&gt; Confirmed.</dt>
+                <dd>The domain name (i.e. "yahoo.com", "aol.com") shown in the "From:"
+line was confirmed using the <a href="http://spf.pobox.com">Sender Policy Framework (SPF)</a>
+verification process. You can be
+reasonably sure that the sender is legitimately using the domain shown;
+however, the user name part of the address (i.e. "mike" in "mike@aol.com")
+is never checked by this extension. And, a confirmed domain does
+not mean that the domain is necessarily trustworthy. Also watch out
+for domain-lookalikes!</dd>
+                <dt>Reputable Sender</dt>
+                <dd>The domain of the sender (e.g. "aol.com") was listed in a
+3rd party list of reputable senders. You can be reasonably sure
+that the domain shown is trustworthy (but always use common sense).
+<a href="http://www.dnswl.org/">DNSWL</a> and
+<a href="http://www.senderscorecertified.org/">Sender Score Certified</a>
+are the sources of the reputation information for this message.</dd>
+                <dt>"From:" domain unverified. Envelope domain &lt;example.com&gt; confirmed.</dt>
+                <dd>Sometimes the domain listed in the "From:" address cannot be
+positively or negatively verified. An alternate domain listed in the
+hidden envelope information of the email has been confirmed as the
+sender of this email (the domain shown in the message), and you should use <i>this</i> envelope domain, and
+<i>not</i> the "From:" address, when considering whether to trust the sender.
+The "From:" address is likely forged (which doesn't necessarily indicate
+maliciousness, but it may).</dd>
+                <dt>This does not appear to be a legitimate &lt;example.com&gt; email.</dt>
+                <dd>The verification process indicates that the sender was likely <i>not</i>
+authorized to send mail using the domain in the "From:" address. While
+this can indicate malicious intent, it may also result from an inadvertently
+incorrect mail configuration on the sender's side. There is also an
+inherent limitation in the verification process that causes this message
+to show up on emails from senders using the same ISP as you, generally
+for small ISPs.</dd>
+                <dt>
+                  <div>Sending domain does not support verification (address could be forged).</div>
+                  <div>Mail list domain could not be verified or does not support verification.</div>
+                </dt>
+                <dd>The domain indicated in the "From:" address (e.g. "aol.com") or
+the hidden envelope address does not
+support verification. When a sender is not verified, it does not mean the email is necessarily forged.  Some web domains do not participate in new
+verification systems, and emails claming to be from them may not always
+be able to be positively verified.</dd>
+                <dt>Sending domain could not verify sender (address could be forged).</dt>
+                <dd>While the domain indicated in the "From:" address (e.g. "aol.com") 
+supports verification, the sender could not be positively or negative
+verified. When a sender is not verified, it does not mean the email is necessarily forged,
+but that is certainly one reason this message will appear.</dd>
+                <dt>This sender is a known malicious spammer or phisher.  Discard this email.</dt>
+                <dd>The sender was listed in a 3rd-party list of spammers or malicious
+phishing attack senders, by IP address or by the domain shown in the
+"From:" or hidden envelope addresses. When this message appears, you can
+be very certain that the sender is malicious. <a href="http://www.surbl.org/">SURBL</a> and
+<a href="http://www.spamhaus.org/">Spamhaus</a> are used for this check.</dd>
+                <dt>
+                  <div>Address is known to you.</div>
+                  <div>Domain is known to you.</div>
+                  <div>Sender is unknown to you.</div>
+                </dt>
+                <dd>Unless other reputation information is available for the sender,
+the extension looks inside your Address Book to see if the address shown
+in the "From:" address is someone you have corresponded with before.
+This message reports whether the full address ("Address is known to you.")
+or just the domain (e.g. "@aol.com"; "Domain is known to you.")
+was found in your address book, or if not even the domain was found
+in your address book ("Sender is unknown to you."). Obviously, whether you can trust a domain found
+in your address book rests on whether you are sure you have not included
+any malicious senders in your address book, which may have automatically
+ocurred if you simply replied to a malicious address.</dd>
+                <dt>Message is confirmed from a &lt;example.com&gt; mail list.</dt>
+                <dd>The original sender of mail list email is not checked by the
+extension. Rather, the extension checks whether the email is legitimately
+from a mail list at the indicated domain. You may not be able to trust
+the body of the message, or the sender shown in the "From:" address, but
+at least you can confirm which mail list relayed the email to you.</dd>
+                <dt>Message is too old to verify sender.</dt>
+                <dd>The message verification techniques rely on transient information.
+Stored messages from too long ago cannot be verified.</dd>
+                <dt>Mail originates from your mail server, or message headers could not be understood.</dt>
+                <dd>This is a catch-all message when certain information about the email
+could not be found in the email. This is the case when the message originates
+from your ISP directly, or from users with local accounts on your mail server.
+The message could not be verified. If you are sure the message originated
+externally from your ISP, please contact the developer of this extension
+to report the message as a bug.</dd>
+                <dt>Sender verification is not applicable for this message.</dt>
+                <dd>Emails opened from <tt>.eml</tt> files on disk, and other types of messages besides those from POP and
+IMAP servers, cannot be verified.</dd>
+              </dl>
+              <H3>Brief FAQ</H3>
+              <P><B>FAQ: Can the extension tie into mail filters to move forged
+emails into my junk folder?</B><BR/>No, and you wouldn't want to do
+that anyway.  Whether an email passes or fails a verification check
+doesn't say much about whether it is <i>definitely</i> spam or phishing.  Many "bad"
+emails will correctly pass the check because spammers are sending
+verified emails, and many legitimate emails will be labeled as forged
+or unverified because of unusual email transport conditions.
+The extension is meant as a tool for a human with some common sense
+to interpret, not a machine.</P>
+              <P><B>FAQ: I know a domain doesn't use SPF, but the email is shown as
+verified.  How could that be?</B><br/> Because so few domains actually publish SPF
+records, the extension uses the usual SPF "guess" mechanism when no SPF
+record is present (this is "+a/24 +mx").  When there is no SPF record, the extension checks if
+the sending IP address matches the IP address of the domain itself.  If
+it is the same, the extension reports the email as verified.  If you
+look at the detailed verification status, it will say the sender was "implicitly" allowed.</P>
+              <!--<P><B>FAQ: How does it know a domain is a known spammer?</B> <br/>
+The extension checks domains against <a href="http://www.surbl.org">SURBL</a>,
+a blacklist of spammers and phishers.  SURBL isn't 100% accurate, but
+it seems to be on the whole a helpful addition to the extension.</P>-->
+              <P><B>FAQ: SPF isn't intended to be used on From: addresses!</B><br/>
+That doesn't mean the information isn't still useful.  If you're a
+stickler about it, then just pretend the extension is using SenderID.
+When a domain doesn't publish SenderID records (which is basically
+always the case), then one may use the SPF record on a domain as if
+it were a PRA record instead.  The vast majority of emails have the
+same From: and envelope address, and the vast majority of domains have
+the same SPF and PRA (if present) records, so in practice this really
+isn't an issue.</P>
+              <H3>Configuration Options</H3>
+              <p>You won't need to set any options when you install the extension,
+but as you read emails the extension will unobtrusively ask you 
+some questions that will help it verify more emails.  (The
+questions are normally hidden.  Hit the plus-sign to see verification
+details when a verification fails.)  These options are also
+available from Tools | Extensions | Options</p>
+              <p>These options are for the SPF verification method, which uses
+the Received: headers of email to establish the identity of
+the last server to relay the message to you.</p>
+              <p><i>Is ___ in your internal network?</i> When emails pass through 
+multiple mail servers <i>within</i> your ISP, the SPF method will be 
+confused as to whether those servers originated the email or are just 
+intermediaries on the email's way to you.  When SPF believes it may be 
+confused, it will prompt you with the name of a mail server that it 
+thinks might be a local mail server.  If you recognize the name as a 
+part of your ISP or local institution, you may instruct the extension 
+that it is an internal network server. Don't set any IP address as an 
+internal network server if you do not recognize the provided name of the 
+server as belonging to your ISP. The effect of setting this option is to cause the extension to
+skip Received: headers that match internal network servers.</p>
+              <P><I>Is ____ a mail list?</I>  Although SPF has trouble verifying
+forwarded and mail list email, the extension has a work-around.
+By indicating to the extension which servers are forwarders and
+mail lists that you subscribe to, the extension can look deeper
+in the mail headers to recover what mail server sent the email
+before it arrived at the forwarder/mail list.
+The effect of setting this option is to cause the extension to
+look one Received: header deeper only when the <i>envelope domain</i>
+matches a known forwarder/mail list and when that domain is verified.</P>
+              <p><I>DNS Server</I>.  You might want to provide the extension with
+the name or IP address of your local DNS server. Though this setting
+is Google's Public DNS service, non-compliant routers and firewalls on your network
+may require that you change it.  In that case, you may
+need to adjust the extension's settings in Tools -&gt; Add-ons,
+and click the Sender Verification Extension's Preferences button.
+Select a different DNS server (host:port format is supported).</p>
+              <H3>Miscellany</H3>
+              <P>Known issues: Mail submitted by the sender to the same server that it's
+delivered to will not be able to be verified. After switching between Classic, Wide,
+and Vertical layout, the extension stops working.</P>
+              <p>I've posted the source for this project above.
+Use it/copy it however you like.  I don't care, but credit would be nice.</p>
+              <P>Thanks to <a href="http://pajhome.org.uk/crypt/md5">Paul Johnston</a>
+for the SHA-1 hash algorithm in JavaScript.  I had to modify it to
+compute the hash incrementally.  That might be useful for other projects.
+The source also contains a module for DNS lookups, including reverse DNS.
+And there is a module for performing SPF queries.</P>
+              <p><a href="http://doapspace.gentooexperimental.org/doap/thunderbirdspf">DOAP file</a>
+via DOAPSpace, via Freshmeat.</p>
+            </Body>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
